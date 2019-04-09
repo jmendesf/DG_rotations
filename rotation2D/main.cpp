@@ -34,5 +34,12 @@ int main(int argc, char** argv)
   Image image = PGMReader<Image>::importPGM(argv[1]);
   trace.info() << "Imported image: " << image << endl;
 
+  Board2D board;
+  board << image.domain();
+  board.save("../output/imageDomain.pgm");
+  board.clear();
+
+  Display2DFactory::drawImage<Gray>(board, image, (unsigned char)0, (unsigned char)255);
+
   return 0;
 }

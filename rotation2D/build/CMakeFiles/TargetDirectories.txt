@@ -1,0 +1,3 @@
+/user/mendesfj/Documents/Stage/implementations/DG_rotations/rotation2D/build/CMakeFiles/rebuild_cache.dir
+/user/mendesfj/Documents/Stage/implementations/DG_rotations/rotation2D/build/CMakeFiles/rotation2D.dir
+/user/mendesfj/Documents/Stage/implementations/DG_rotations/rotation2D/build/CMakeFiles/edit_cache.dir
