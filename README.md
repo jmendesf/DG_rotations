@@ -21,7 +21,7 @@ make
 
 ./rotation2D <path_to_pgm_file>     (still from build directory)
 
-I recommand you use the contourS.pgm file in the sample/directory
+I recommand you use the contourS.pgm file in the sample/ directory
 
 
 
