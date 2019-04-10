@@ -16,14 +16,23 @@
 #include "DGtal/io/readers/PGMReader.h"
 #include "DGtal/io/colormaps/HueShadeColorMap.h"
 #include "DGtal/io/colormaps/GrayscaleColorMap.h"
+#include "DGtal/images/RigidTransformation2D.h"
 
 using namespace std;
 using namespace DGtal;
+using namespace functors;
 
 // 2D image definition
 typedef ImageContainerBySTLVector<Z2i::Domain, float>  Image;
 // Grayscale mapping
 typedef GrayscaleColorMap<float> Gray;
+
+// Rigid transformations
+typedef ForwardRigidTransformation2D < Z2i::Space > ForwardTrans;
+typedef BackwardRigidTransformation2D < Z2i::Space > BackwardTrans;
+typedef ConstImageAdapter<Image, Z2i::Domain, BackwardTrans, Image::Value, Identity > MyImageBackwardAdapter;
+typedef DomainRigidTransformation2D < Z2i::Domain, ForwardTrans > MyDomainTransformer;
+typedef MyDomainTransformer::Bounds Bounds;
 
 // Create a binarizer
 typedef functors::IntervalForegroundPredicate<Image> Binarizer;  
@@ -75,7 +84,7 @@ Image addImages(Image im1, Image im2)
     {
       value = im1.operator()({x,y}) + im2.operator()({x,y});
 
-      // im cannot go over 255
+      // image value cannot be more than 255
       if(value > 255)
         value = 255;
 
@@ -114,6 +123,8 @@ Image addImages(DTL1 dtl1Im1, DTL1 dtl1Im2)
   return im;
 }
 
+// Save board from image 
+// Save to path
 void saveImage(Board2D board, Image image, int minVal, int maxVal, string path)
 {
   board.clear();
@@ -121,6 +132,8 @@ void saveImage(Board2D board, Image image, int minVal, int maxVal, string path)
   board.saveEPS(path.c_str());
 }
 
+// Save board from set
+// Save to path
 void saveSet(Board2D board, Z2i::DigitalSet set, string path)
 {
   board.clear();
@@ -171,10 +184,10 @@ void processImage(Image& image)
 
   // Save output 
   saveImage(board, imAddDTL, 0, 255, "../output/im_add_DT.eps");
-  saveImage(board, imGS, 0, 255, "../output/im_GS_DT.eps");
+  saveImage(board, imGS, 0, 500, "../output/im_GS_DT.eps");
   saveImage(board, imInvGS, 0, 255, "../output/im_inv_GS_DT");
   saveSet(board, set, "../output/set.eps");
-  saveSet(board, set, "../output/set_inv.eps");
+  saveSet(board, setInv, "../output/set_inv.eps");
 }
 
 
@@ -192,7 +205,7 @@ int main(int argc, char** argv)
 
   cout << endl;
   processImage(image);
-  cout << "All output saved in ../output/." << endl << endl;
+  cout << "All outputs saved in ../output/." << endl << endl;
 
   return 0;
 }
