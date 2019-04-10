@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <string>
 #include <boost/algorithm/minmax_element.hpp>
 #include "DGtal/base/Common.h"
 #include "DGtal/helpers/StdDefs.h"
@@ -20,9 +21,9 @@ using namespace std;
 using namespace DGtal;
 
 // 2D image definition
-typedef ImageContainerBySTLVector<Z2i::Domain, int>  Image;
+typedef ImageContainerBySTLVector<Z2i::Domain, float>  Image;
 // Grayscale mapping
-typedef GrayscaleColorMap<int> Gray;
+typedef GrayscaleColorMap<float> Gray;
 
 // Create a binarizer
 typedef functors::IntervalForegroundPredicate<Image> Binarizer;  
@@ -65,6 +66,7 @@ Image createImageFromDT(DTL1 dtl1, int maxValue)
 // Returns the addition of two images
 Image addImages(Image im1, Image im2)
 {
+  // Takes the size of the biggest image
   Image im((im1.domain().size() > im2.domain().size() ? im1.domain() : im2.domain()));
   int value;
 
@@ -72,6 +74,8 @@ Image addImages(Image im1, Image im2)
     for(int x = 0; x < im.domain().upperBound()[0]; ++x)
     {
       value = im1.operator()({x,y}) + im2.operator()({x,y});
+
+      // im cannot go over 255
       if(value > 255)
         value = 255;
 
@@ -83,25 +87,45 @@ Image addImages(Image im1, Image im2)
 // Returns the addition of two DT in the form of an image
 Image addImages(DTL1 dtl1Im1, DTL1 dtl1Im2)
 {
+  // Takes the size of the biggest image
   Image im((dtl1Im1.domain().size() > dtl1Im2.domain().size() ? dtl1Im1.domain() : dtl1Im2.domain()));
 
+  // Max values of DT for each DT
   DTL1::Value maxDT2 = (*std::max_element(dtl1Im1.constRange().begin(), dtl1Im1.constRange().end()));
   DTL1::Value maxDT1 = (*std::max_element(dtl1Im2.constRange().begin(), dtl1Im2.constRange().end()));
 
+  // Compute grayscale coefficient depending on the max DT value
   int step = 255 / maxDT2;
   int step2 = 255 / maxDT1;
+
+  int value, value2;
 
   for(int y = 0; y < im.domain().upperBound()[1]; ++y)
   {
     for(int x = 0; x < im.domain().upperBound()[0]; ++x)
     {
-      int value = dtl1Im1.operator()({x,y});
-      int value2 = dtl1Im2.operator()({x,y});
+      value = dtl1Im1.operator()({x,y});
+      value2 = dtl1Im2.operator()({x,y});
       
+      // the point at x,y takes the maximum value between the two
       im.setValue({x,y}, max(value * step, value2 * step2));
     }
   }
   return im;
+}
+
+void saveImage(Board2D board, Image image, int minVal, int maxVal, string path)
+{
+  board.clear();
+  Display2DFactory::drawImage<Gray>(board, image, minVal, maxVal);
+  board.saveEPS(path.c_str());
+}
+
+void saveSet(Board2D board, Z2i::DigitalSet set, string path)
+{
+  board.clear();
+  board << set.domain() << set;
+  board.saveEPS(path.c_str());
 }
 
 void processImage(Image& image)
@@ -111,13 +135,12 @@ void processImage(Image& image)
   board << image.domain();
   board.clear();
 
+  // copy the image then inverse it 
   Image imInv = image;
+  inverseImage(imInv);
 
   // Import image to the board
   Display2DFactory::drawImage<Gray>(board, image, (unsigned char)0, (unsigned char)255);
-
-  // Get the inverse
-  inverseImage(imInv);
 
   // Threshold the image
   Binarizer b(image, 1, 135);
@@ -131,28 +154,14 @@ void processImage(Image& image)
   DTL1::Value maxDT2 = (*std::max_element(dtl1.constRange().begin(), dtl1.constRange().end()));
   DTL1::Value maxDT1 = (*std::max_element(dtl1Inv.constRange().begin(), dtl1Inv.constRange().end()));
 
-  // Hue color map
-  // typedef DGtal::HueShadeColorMap<DTL1::Value,2> HueTwice;
-
   // Create GS DT images
   Image imGS = createImageFromDT(dtl1, maxDT2);
   Image imInvGS = createImageFromDT(dtl1Inv, maxDT1);
+
   // Add both DT
   Image imAddDTL = addImages(dtl1, dtl1Inv);
 
-  // Save output 
-  board.clear();
-  Display2DFactory::drawImage<Gray>(board, imAddDTL, 0, 255);
-  board.saveEPS("../output/im_add_DT");
-  board.clear();
-  Display2DFactory::drawImage<Gray>(board, imGS, 0, 255);
-  board.saveEPS("../output/im_GS_DT.eps");
-  board.clear();
-  Display2DFactory::drawImage<Gray>(board, imInvGS, 0, 255);
-  board.saveEPS("../output/im_inv_GS_DT");
-
-  // Create a set to put the DT in
-  // Set for the inverse of the image aswell
+  // Create a set for the image and its inverse
   Z2i::DigitalSet set(image.domain());
   Z2i::DigitalSet setInv(imInv.domain());
   DigitalSetInserter<Z2i::DigitalSet> inserter(set);
@@ -160,13 +169,12 @@ void processImage(Image& image)
   DGtal::setFromImage(dtl1, inserter, 1, 135);
   DGtal::setFromImage(imInv, inserterInv, 1, 135);
 
-  // Save both sets
-  board.clear();
-  board << set.domain() << set;
-  board.saveEPS("../output/set.eps");
-  board.clear();
-  board << setInv.domain() << setInv;
-  board.saveEPS("../output/set_Inv.eps");
+  // Save output 
+  saveImage(board, imAddDTL, 0, 255, "../output/im_add_DT.eps");
+  saveImage(board, imGS, 0, 255, "../output/im_GS_DT.eps");
+  saveImage(board, imInvGS, 0, 255, "../output/im_inv_GS_DT");
+  saveSet(board, set, "../output/set.eps");
+  saveSet(board, set, "../output/set_inv.eps");
 }
 
 
@@ -181,7 +189,10 @@ int main(int argc, char** argv)
 
   // Load image
   Image image = PGMReader<Image>::importPGM(argv[1]);
+
+  cout << endl;
   processImage(image);
+  cout << "All output saved in ../output/." << endl << endl;
 
   return 0;
 }
