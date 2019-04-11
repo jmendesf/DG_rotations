@@ -54,17 +54,18 @@ typedef DistanceTransformation<Z2i::Space, Binarizer, Z2i::L1Metric> DTL1;
 void usage(bool help)
 {
   cout << endl;
-  cout << "usage: ./rotation <path_to_pgm_file> <angle> <method> <minThresh> <maxThresh>" << endl;
+  cout << "usage: ./rotation2D <path_to_pgm_file> <angle> <method> <minThresh> <maxThresh>" << endl;
   cout << "method: bli (bilinear interpolation), nn (nearest neighbor), all" << endl;
   
   if(help)
   {
     cout << endl << "Threshold values:" << endl;
     cout << "ContourS.pgm: 1, 135" << endl;
-    cout << "key.pgm: 150, 255" << endl;
+    cout << "key.pgm: 150, 255" << endl << endl;
+    cout << "example: ./rotation2D ../samples/contourS.pgm 2.5 all 1 135" << endl;
   } else
   {
-    cout << "./rotation help for more" << endl;
+    cout << "./rotation2D help for more" << endl;
   }
   
   cout << endl;
