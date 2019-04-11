@@ -23,6 +23,7 @@ using namespace std;
 using namespace DGtal;
 using namespace functors;
 
+// Enum on the interpolation method
 enum METHOD {
   NEAREST_NEIGHBOR,
   BILINEAR_INTERPOLATION,
@@ -50,11 +51,22 @@ typedef DistanceTransformation<Z2i::Space, Binarizer, Z2i::L2Metric> DTL2;
 typedef DistanceTransformation<Z2i::Space, Binarizer, Z2i::L1Metric> DTL1;
 
 // Print if wrong args
-void usage()
+void usage(bool help)
 {
   cout << endl;
-  cout << "usage: ./rotation <path_to_pgm_file> <angle> <method>" << endl;
+  cout << "usage: ./rotation <path_to_pgm_file> <angle> <method> <minThresh> <maxThresh>" << endl;
   cout << "method: bli (bilinear interpolation), nn (nearest neighbor), all" << endl;
+  
+  if(help)
+  {
+    cout << endl << "Threshold values:" << endl;
+    cout << "ContourS.pgm: 1, 135" << endl;
+    cout << "key.pgm: 150, 255" << endl;
+  } else
+  {
+    cout << "./rotation help for more" << endl;
+  }
+  
   cout << endl;
 }
 
@@ -121,8 +133,8 @@ Image addImages(DTL1 dtl1Im1, DTL1 dtl1Im2)
   DTL1::Value maxDT1 = (*std::max_element(dtl1Im2.constRange().begin(), dtl1Im2.constRange().end()));
 
   // Compute grayscale coefficient depending on the max DT value
-  int step = 255 / maxDT2;
-  int step2 = 255 / maxDT1;
+  int step = maxDT2 != 0 ? 255 / maxDT2 : 1;
+  int step2 = maxDT1 != 0 ? 255 / maxDT1 : 1;
 
   int value, value2;
 
@@ -140,12 +152,14 @@ Image addImages(DTL1 dtl1Im1, DTL1 dtl1Im2)
   return im;
 }
 
+// Converts a DT image into its grayscale equivalent (values from 0 to 255)
 void imDTToGS(Image& imDT, int minValue, int maxValue)
 {
-
-  int step = 255 / (maxValue - minValue);
+  // avoid division by 0
+  int step = (maxValue != minValue) ? 255 / (maxValue - minValue) : 1;
   float value;
 
+  // compute equivalent for DT in GS
   for(int y = 0; y < imDT.domain().upperBound()[1]; ++y)
   {
     for(int x = 0; x < imDT.domain().upperBound()[0]; ++x)
@@ -160,6 +174,8 @@ void imDTToGS(Image& imDT, int minValue, int maxValue)
   }
 }
 
+// if pixel is positive: 0 (background)
+// if pixel is negative: 255 (foreground)
 void thresholdDTImage(Image src, Image& dst)
 {
   for(int y = src.domain().lowerBound()[1]; y < src.domain().upperBound()[1]; y++)
@@ -171,6 +187,8 @@ void thresholdDTImage(Image src, Image& dst)
   }
 }
 
+// Prepares the DT for rotation. 
+// Contour pixels take the value of 0.5 if belonging to the BG, -0.5 if FG.
 void processDT(Image& imDT, bool isInterior)
 {
   for(int y = 0; y < imDT.domain().upperBound()[1]; y++)
@@ -188,11 +206,16 @@ void processDT(Image& imDT, bool isInterior)
   }
 }
 
+
+// Compute rotation with nearest neighbor choice of pixel value
 Image rotateBackwardNearestNeighbor(Image image, float angle)
 {
+  // domain's extrema
   int maxX = image.domain().upperBound()[0];
   int maxY = image.domain().upperBound()[1];
   int minX, minY;
+
+  // Compute rotation point
   PointVector<2, int> center(maxX / 2, maxY/ 2);
 
   int x1, y1;
@@ -200,8 +223,10 @@ Image rotateBackwardNearestNeighbor(Image image, float angle)
   int x3, y3;
   int x4, y4;
 
+  // Rotation for extremas will be done with forward rotation
   angle = -angle;
 
+  // Compute position of the 4 corners of the domain
   x1 = center[0] + (0 - center[0]) * cos(angle) - (0 - center[1]) * sin(angle);
   y1 = center[1] + (0 - center[0]) * sin(angle) + (0 - center[1]) * cos(angle);
 
@@ -214,13 +239,14 @@ Image rotateBackwardNearestNeighbor(Image image, float angle)
   x4 = center[0] + (0 - center[0]) * cos(angle) - (maxY - center[1]) * sin(angle);
   y4 = center[1] + (0 - center[0]) * sin(angle) + (maxY - center[1]) * cos(angle);
 
+  // Compute extrema values
   minX = min(min(x1,x2), min(x3,x4));
   minY = min(min(y1,y2), min(y3,y4));
   maxX = max(max(x1,x2), max(x3,x4));
   maxY = max(max(y1,y2), max(y3,y4));
 
+  // Create the corresponding domain and image
   Z2i::Domain domain(Z2i::Point(minX,minY), Z2i::Point(maxX,maxY));
-
   Image rotIm(domain);
 
   angle = -angle;
@@ -231,42 +257,45 @@ Image rotateBackwardNearestNeighbor(Image image, float angle)
   {
     for(int x = minX; x < rotIm.domain().upperBound()[0]; ++x)
     {
+      // Compute backward rotation
       backX = center[0] + (x - center[0]) * cos(angle) - (y - center[1]) * sin(angle);
       backY = center[1] + (x - center[0]) * sin(angle) + (y - center[1]) * cos(angle);
 
+      // Rounding: Nearest neighbor
       backX = round(backX);
       backY = round(backY);
 
-
+      // Ensure position is valid
       if((backX >= image.domain().upperBound()[0]) || (backX < 0))
-      {
         continue;
-      }
 
-      if((backY >= image.domain().upperBound()[1]) || (backY < 0)){
-        continue;
-      }
-        
+      if((backY >= image.domain().upperBound()[1]) || (backY < 0))
+        continue;  
 
+      // Set the value in the rotated Image
       rotIm.setValue({x,y}, image.operator()({(int)backX, (int)backY}));
     }
   }
   return rotIm;
 }
 
+// Bilinear interpolation function
+// x, y the coordinates calculated by backward rotation
 float computeBilinearInterpolation(Image image, float x, float y)
 {
+  // compute floor coordinates
   int x1 = floor(x);
   int x2 = x1 + 1;
   int y1 = floor(y);
   int y2 = y1 + 1;
   
+  // values of the 4 surrouding pixels
   float Q11 = image.operator()({x1, y1});
   float Q12 = image.operator()({x1, y2});
   float Q21 = image.operator()({x2, y1});
   float Q22 = image.operator()({x2, y2});
 
-
+  // interpolation computation
   float res = (1/((x2 - x1) * (y2 - y1))) 
         * (Q11 * (x2 - x) * (y2 - y) 
         + Q21 * (x - x1) * (y2 - y) 
@@ -278,9 +307,12 @@ float computeBilinearInterpolation(Image image, float x, float y)
 
 Image rotateBackwardBilinearInterpolation(Image image, float angle)
 {
+  // domain's extrema
   int maxX = image.domain().upperBound()[0];
   int maxY = image.domain().upperBound()[1];
   int minX, minY;
+
+  // Compute rotation point
   PointVector<2, int> center(maxX / 2, maxY/ 2);
 
   int x1, y1;
@@ -288,8 +320,10 @@ Image rotateBackwardBilinearInterpolation(Image image, float angle)
   int x3, y3;
   int x4, y4;
 
+  // Rotation for extremas will be done with forward rotation
   angle = -angle;
 
+  // Compute position of the 4 corners of the domain
   x1 = center[0] + (0 - center[0]) * cos(angle) - (0 - center[1]) * sin(angle);
   y1 = center[1] + (0 - center[0]) * sin(angle) + (0 - center[1]) * cos(angle);
 
@@ -302,13 +336,13 @@ Image rotateBackwardBilinearInterpolation(Image image, float angle)
   x4 = center[0] + (0 - center[0]) * cos(angle) - (maxY - center[1]) * sin(angle);
   y4 = center[1] + (0 - center[0]) * sin(angle) + (maxY - center[1]) * cos(angle);
 
+  // Compute extrema values
   minX = min(min(x1,x2), min(x3,x4));
   minY = min(min(y1,y2), min(y3,y4));
   maxX = max(max(x1,x2), max(x3,x4));
   maxY = max(max(y1,y2), max(y3,y4));
 
-
-
+  // Create the corresponding domain and image
   Z2i::Domain domain(Z2i::Point(minX,minY), Z2i::Point(maxX,maxY));
   Image rotIm(domain);
 
@@ -320,14 +354,17 @@ Image rotateBackwardBilinearInterpolation(Image image, float angle)
   {
     for(int x = minX; x < rotIm.domain().upperBound()[0]; ++x)
     {
+      // Compute backward rotation
       backX = center[0] + (x - center[0]) * cos(angle) - (y - center[1]) * sin(angle);
       backY = center[1] + (x - center[0]) * sin(angle) + (y - center[1]) * cos(angle);
 
+      // Ensure position is valid
       if((backX > image.domain().upperBound()[0]) || (backX < 0))
         continue;
       if((backY > image.domain().upperBound()[1]) || (backY < 0))
         continue;
 
+      // Set the interpolated value 
       rotIm.setValue({x,y}, computeBilinearInterpolation(image, backX, backY));
     }
   }
@@ -353,8 +390,10 @@ void saveSet(Board2D board, Z2i::DigitalSet set, string path)
   board.saveEPS(path.c_str());
 }
 
-void processImage(Image& image, float angle, METHOD method)
+void processImage(Image& image, float angle, METHOD method, int minThresh, int maxThresh)
 {
+  cout << endl;
+
   // Create board and set its size
   Board2D board;
   board << image.domain();
@@ -368,12 +407,12 @@ void processImage(Image& image, float angle, METHOD method)
   Display2DFactory::drawImage<Gray>(board, image, (unsigned char)0, (unsigned char)255);
 
   // Threshold the image
-  Binarizer b(image, 1, 135);
-  Binarizer bInv(imInv, 1, 135);
+  Binarizer b(image, minThresh, maxThresh);
+  Binarizer bInv(imInv, minThresh, maxThresh);
 
   // DTL2 dtl2(&image.domain(), &b, &Z2i::l2Metric);
   DTL1 dtl1(&image.domain(), &b, &Z2i::l1Metric);
-  DTL1 dtl1Inv(&imInv.domain(), &bInv, &Z2i::l1Metric);
+  DTL1 dtl1Inv(&imInv.domain(), &bInv, &Z2i::l1Metric);  
 
   // Compute the max value of the DT
   DTL1::Value maxDT2 = (*std::max_element(dtl1.constRange().begin(), dtl1.constRange().end()));
@@ -389,20 +428,27 @@ void processImage(Image& image, float angle, METHOD method)
   // Add both DT
   Image imAddDTL = addImages(imInvGS, imGS);
 
+  // Compute rotations
+  // Nearest neighbor
   if((method == NEAREST_NEIGHBOR) || (method == ALL))
   {
-    cout << "Computing rotation using nearest neighbor -" << endl;
+    cout << "Computing rotation using nearest neighbor -";
     Image rotIm = rotateBackwardNearestNeighbor(imAddDTL, angle);
     thresholdDTImage(rotIm, rotIm);
-    saveImage(board, rotIm, 0, 255, "../output/rot_NN");
+    saveImage(board, rotIm, 0, 255, "../output/rot_NN.eps");
+    cout << " done." << endl;
+    cout << "Output save as ../output/rot_NN.eps" << endl << endl;
   }
   
+  // Bilinear interpolation
   if((method == BILINEAR_INTERPOLATION) || (method == ALL))
   {
-    cout << "Computing rotation using bilinear interpolation -" << endl;
+    cout << "Computing rotation using bilinear interpolation -";
     Image rotIm = rotateBackwardBilinearInterpolation(imAddDTL, angle);
     thresholdDTImage(rotIm, rotIm);
-    saveImage(board, rotIm, 0, 255, "../output/rot_BLI");
+    saveImage(board, rotIm, 0, 255, "../output/rot_BLI.eps");
+    cout << " done." << endl;
+    cout << "Output save as ../output/rot_BLI.eps" << endl << endl;
   }
 
   imDTToGS(imAddDTL, -maxDT2, maxDT1);
@@ -428,24 +474,32 @@ void processImage(Image& image, float angle, METHOD method)
 
 int main(int argc, char** argv)
 {
+  if(argc == 2)
+    if(strcmp(argv[1], "help") == 0)
+    {
+      usage(true);
+      return 0;
+    }
+
   // Check args
-  if(argc != 4)
+  if(argc != 6)
   {
-    usage();
+    usage(false);
     return 0;
   }
 
   // Load image
   Image image = PGMReader<Image>::importPGM(argv[1]);
   
+  // process depending on the user's choice
   if(strcmp(argv[3], "bli") == 0)
-    processImage(image, -stof(argv[2]), BILINEAR_INTERPOLATION);
+    processImage(image, -stof(argv[2]), BILINEAR_INTERPOLATION, stoi(argv[4]), stoi(argv[5]));
   else if(strcmp(argv[3],"nn") == 0)
-    processImage(image, -stof(argv[2]), NEAREST_NEIGHBOR);
+    processImage(image, -stof(argv[2]), NEAREST_NEIGHBOR, stoi(argv[4]), stoi(argv[5]));
   else if(strcmp(argv[3], "all") == 0)
-    processImage(image, -stof(argv[2]), ALL);
+    processImage(image, -stof(argv[2]), ALL, stoi(argv[4]), stoi(argv[5]));
   else 
-    usage();
+    usage(false);
 
   return 0;
 }
