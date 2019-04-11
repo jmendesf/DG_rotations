@@ -19,7 +19,7 @@ cmake ..
 
 make
 
-./rotation2D <path_to_pgm_file> <angle_in_radians> <method> <lowerThresh> <upperThresh>    (still from build directory)
+./rotation2D <path_to_pgm_file> <angle_in_radians> <_method> <_lowerThresh> <_upperThresh>    (still from build directory)
 
 I recommand you use the contourS.pgm file in the sample/ directory
 
