@@ -19,11 +19,12 @@ cmake ..
 
 make
 
-./rotation2D <path_to_pgm_file>     (still from build directory)
+./rotation2D <path_to_pgm_file> <angle_in_radians> <method> <lowerThresh> <upperThresh>    (still from build directory)
 
 I recommand you use the contourS.pgm file in the sample/ directory
 
-
+Example :
+./rotation2D ../samples/contourS.pgm 2.5 all 1 135
 
 ## Output
 The program will store the output files in output/ file in the rotation2D/ directory (if the program was runned from the build/ directory
