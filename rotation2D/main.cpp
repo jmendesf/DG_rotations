@@ -92,6 +92,24 @@ Image createImageFromDT(DTL1 dtl1, int maxValue, bool toGS)
   return im;
 }
 
+Image createImageFromDT(DTL2 dtl2, int maxValue, bool toGS)
+{
+  Image im(dtl2.domain());
+  int step;
+  if(toGS)
+    step = maxValue != 0 ? 255 / maxValue : 0;
+
+  float value = 0;
+
+  for(int y = 0; y < im.domain().upperBound()[1]; ++y)
+    for(int x = 0; x < im.domain().upperBound()[0]; ++x)
+    {
+      value = dtl2.operator()({x,y});
+      im.setValue({x,y}, toGS ? step * value : value);
+    }
+  return im;
+}
+
 // Returns the addition of two images
 Image addImages(Image im1, Image im2)
 {
@@ -118,14 +136,14 @@ Image addImages(Image im1, Image im2)
 }
 
 // Returns the addition of two DT in the form of an image
-Image addImages(DTL1 dtl1Im1, DTL1 dtl1Im2)
+Image addImages(DTL2 dtl2Im1, DTL2 dtl2Im2)
 {
   // Takes the size of the biggest image
-  Image im((dtl1Im1.domain().size() > dtl1Im2.domain().size() ? dtl1Im1.domain() : dtl1Im2.domain()));
+  Image im((dtl2Im1.domain().size() > dtl2Im2.domain().size() ? dtl2Im1.domain() : dtl2Im2.domain()));
 
   // Max values of DT for each DT
-  DTL1::Value maxDT2 = (*std::max_element(dtl1Im1.constRange().begin(), dtl1Im1.constRange().end()));
-  DTL1::Value maxDT1 = (*std::max_element(dtl1Im2.constRange().begin(), dtl1Im2.constRange().end()));
+  DTL1::Value maxDT2 = (*std::max_element(dtl2Im1.constRange().begin(), dtl2Im1.constRange().end()));
+  DTL1::Value maxDT1 = (*std::max_element(dtl2Im2.constRange().begin(), dtl2Im2.constRange().end()));
 
   // Compute grayscale coefficient depending on the max DT value
   int step = maxDT2 != 0 ? 255 / maxDT2 : 1;
@@ -137,8 +155,8 @@ Image addImages(DTL1 dtl1Im1, DTL1 dtl1Im2)
   {
     for(int x = 0; x < im.domain().upperBound()[0]; ++x)
     {
-      value = dtl1Im1.operator()({x,y});
-      value2 = dtl1Im2.operator()({x,y});
+      value = dtl2Im1.operator()({x,y});
+      value2 = dtl2Im2.operator()({x,y});
       
       // the point at x,y takes the maximum value between the two
       im.setValue({x,y}, max(value * step, value2 * step2));
@@ -338,11 +356,13 @@ float computeBicubicInterpolation(Image image, float x, float y)
   int yInt = (int) y;
   float yFract = y - floor(y);
 
+  // 16 pixel values
   float p00, p10, p20, p30;
   float p01, p11, p21, p31;
   float p02, p12, p22, p32;
   float p03, p13, p23, p33;
 
+  // clamp to avoid having out of bounds pixels
   // first row
   getClampedPixelValue(image, xInt - 1, yInt - 1, p00);
   getClampedPixelValue(image, xInt + 0, yInt - 1, p10);
@@ -550,16 +570,16 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
   Binarizer bInv(imInv, minThresh, maxThresh);
 
   // DTL2 dtl2(&image.domain(), &b, &Z2i::l2Metric);
-  DTL1 dtl1(&image.domain(), &b, &Z2i::l1Metric);
-  DTL1 dtl1Inv(&imInv.domain(), &bInv, &Z2i::l1Metric);  
+  DTL2 dtl2(&image.domain(), &b, &Z2i::l2Metric);
+  DTL2 dtl2Inv(&imInv.domain(), &bInv, &Z2i::l2Metric);  
 
   // Compute the max value of the DT
-  DTL1::Value maxDT2 = (*std::max_element(dtl1.constRange().begin(), dtl1.constRange().end()));
-  DTL1::Value maxDT1 = (*std::max_element(dtl1Inv.constRange().begin(), dtl1Inv.constRange().end()));
+  DTL2::Value maxDT2 = (*std::max_element(dtl2.constRange().begin(), dtl2.constRange().end()));
+  DTL2::Value maxDT1 = (*std::max_element(dtl2Inv.constRange().begin(), dtl2Inv.constRange().end()));
 
   // Create GS DT images
-  Image imGS = createImageFromDT(dtl1, maxDT2, false);
-  Image imInvGS = createImageFromDT(dtl1Inv, maxDT1, false);
+  Image imGS = createImageFromDT(dtl2, maxDT2, false);
+  Image imInvGS = createImageFromDT(dtl2Inv, maxDT1, false);
 
   processDT(imGS, true);
   processDT(imInvGS, false);
@@ -607,7 +627,7 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
   Z2i::DigitalSet setInv(imInv.domain());
   DigitalSetInserter<Z2i::DigitalSet> inserter(set);
   DigitalSetInserter<Z2i::DigitalSet> inserterInv(setInv);
-  DGtal::setFromImage(dtl1, inserter, 1, 135);
+  DGtal::setFromImage(dtl2, inserter, 1, 135);
   DGtal::setFromImage(imInv, inserterInv, 1, 135);
 
   // Save output 
@@ -649,7 +669,7 @@ int main(int argc, char** argv)
   else if(strcmp(argv[3], "all") == 0)
     processImage(image, -stof(argv[2]), ALL, stoi(argv[4]), stoi(argv[5]));
   else 
-    usage(false);
+    usage(false); 
 
   return 0;
 }
