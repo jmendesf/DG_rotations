@@ -24,9 +24,10 @@ using namespace DGtal;
 using namespace functors;
 
 // Enum on the interpolation method
-enum METHOD {
+enum INTERPOLATION_METHOD {
   NEAREST_NEIGHBOR,
   BILINEAR_INTERPOLATION,
+  BICUBIC_INTERPOLATION,
   ALL
 };
 
@@ -34,13 +35,6 @@ enum METHOD {
 typedef ImageContainerBySTLVector<Z2i::Domain, float>  Image;
 // Grayscale mapping
 typedef GrayscaleColorMap<float> Gray;
-
-// Rigid transformations
-typedef ForwardRigidTransformation2D < Z2i::Space > ForwardTrans;
-typedef BackwardRigidTransformation2D < Z2i::Space > BackwardTrans;
-typedef ConstImageAdapter<Image, Z2i::Domain, BackwardTrans, Image::Value, Identity > MyImageBackwardAdapter;
-typedef DomainRigidTransformation2D < Z2i::Domain, ForwardTrans > MyDomainTransformer;
-typedef MyDomainTransformer::Bounds Bounds;
 
 // Create a binarizer
 typedef functors::IntervalForegroundPredicate<Image> Binarizer;  
@@ -55,7 +49,7 @@ void usage(bool help)
 {
   cout << endl;
   cout << "usage: ./rotation2D <path_to_pgm_file> <angle> <method> <minThresh> <maxThresh>" << endl;
-  cout << "method: bli (bilinear interpolation), nn (nearest neighbor), all" << endl;
+  cout << "method: nn (nearest neighbor), bli (bilinear), bic (bicubic), all" << endl;
   
   if(help)
   {
@@ -290,7 +284,7 @@ float computeBilinearInterpolation(Image image, float x, float y)
   int y1 = floor(y);
   int y2 = y1 + 1;
   
-  // values of the 4 surrouding pixels
+  // values of the 4 adjacent pixels
   float Q11 = image.operator()({x1, y1});
   float Q12 = image.operator()({x1, y2});
   float Q21 = image.operator()({x2, y1});
@@ -304,6 +298,141 @@ float computeBilinearInterpolation(Image image, float x, float y)
         + Q22 * (x - x1) * (y - y1));
 
   return res;
+}
+
+int clampInt(int value, int low, int high)
+{
+  return value < low ? low : value > high ? high : value; 
+}
+
+void getClampedPixelValue(Image image, int x, int y, float& val)
+{
+  int upperBoundX = image.domain().upperBound()[0];
+  int upperBoundY = image.domain().upperBound()[1];
+
+  x = clampInt(x, 0, upperBoundX - 1);
+  y = clampInt(y, 0, upperBoundY - 1);
+
+  val = image.operator()({x,y});
+}
+
+float cubicHermite(float A, float B, float C, float D, float t)
+{
+  float a = -A / 2.0f + (3.0f*B) / 2.0f - (3.0f*C) / 2.0f + D / 2.0f;
+  float b = A - (5.0f*B) / 2.0f + 2.0f*C - D / 2.0f;
+  float c = -A / 2.0f + C / 2.0f;
+  float d = B;
+
+  return a*t*t*t + b*t*t + c*t + d;
+}
+
+float computeBicubicInterpolation(Image image, float x, float y)
+{
+  int xInt = (int) x;
+  float xFract = x - floor(x);
+
+  int yInt = (int) y;
+  float yFract = y - floor(y);
+
+  float p00, p10, p20, p30;
+  float p01, p11, p21, p31;
+  float p02, p12, p22, p32;
+  float p03, p13, p23, p33;
+
+  getClampedPixelValue(image, xInt - 1, yInt - 1, p00);
+  getClampedPixelValue(image, xInt + 0, yInt - 1, p10);
+  getClampedPixelValue(image, xInt + 1, yInt - 1, p20);
+  getClampedPixelValue(image, xInt + 2, yInt - 1, p30);
+
+  getClampedPixelValue(image, xInt - 1, yInt, p01);
+  getClampedPixelValue(image, xInt + 0, yInt, p11);
+  getClampedPixelValue(image, xInt + 1, yInt, p21);
+  getClampedPixelValue(image, xInt + 2, yInt, p31);
+
+  getClampedPixelValue(image, xInt - 1, yInt + 1, p02);
+  getClampedPixelValue(image, xInt + 0, yInt + 1, p12);
+  getClampedPixelValue(image, xInt + 1, yInt + 1, p22);
+  getClampedPixelValue(image, xInt + 2, yInt + 1, p32);
+
+  getClampedPixelValue(image, xInt - 1, yInt + 2, p03);
+  getClampedPixelValue(image, xInt + 0, yInt + 2, p13);
+  getClampedPixelValue(image, xInt + 1, yInt + 2, p23);
+  getClampedPixelValue(image, xInt + 2, yInt + 2, p33);
+
+  float col0 = cubicHermite(p00, p10, p20, p30, xFract);
+  float col1 = cubicHermite(p01, p11, p21, p31, xFract);
+  float col2 = cubicHermite(p02, p12, p22, p32, xFract);
+  float col3 = cubicHermite(p03, p13, p23, p33, xFract);
+
+  return cubicHermite(col0, col1, col2, col3, yFract);
+}
+
+
+
+Image rotateBackwardBicubicInterpolation(Image image, float angle)
+{
+  // domain's extrema
+  int maxX = image.domain().upperBound()[0];
+  int maxY = image.domain().upperBound()[1];
+  int minX, minY;
+
+  // Compute rotation point
+  PointVector<2, int> center(maxX / 2, maxY/ 2);
+
+  int x1, y1;
+  int x2, y2;
+  int x3, y3;
+  int x4, y4;
+
+  // Rotation for extremas will be done with forward rotation
+  angle = -angle;
+
+  // Compute position of the 4 corners of the domain
+  x1 = center[0] + (0 - center[0]) * cos(angle) - (0 - center[1]) * sin(angle);
+  y1 = center[1] + (0 - center[0]) * sin(angle) + (0 - center[1]) * cos(angle);
+
+  x2 = center[0] + (maxX - center[0]) * cos(angle) - (0 - center[1]) * sin(angle);
+  y2 = center[1] + (maxX - center[0]) * sin(angle) + (0 - center[1]) * cos(angle);
+
+  x3 = center[0] + (maxX - center[0]) * cos(angle) - (maxY - center[1]) * sin(angle);
+  y3 = center[1] + (maxX - center[0]) * sin(angle) + (maxY - center[1]) * cos(angle);
+
+  x4 = center[0] + (0 - center[0]) * cos(angle) - (maxY - center[1]) * sin(angle);
+  y4 = center[1] + (0 - center[0]) * sin(angle) + (maxY - center[1]) * cos(angle);
+
+  // Compute extrema values
+  minX = min(min(x1,x2), min(x3,x4));
+  minY = min(min(y1,y2), min(y3,y4));
+  maxX = max(max(x1,x2), max(x3,x4));
+  maxY = max(max(y1,y2), max(y3,y4));
+
+  // Create the corresponding domain and image
+  Z2i::Domain domain(Z2i::Point(minX,minY), Z2i::Point(maxX,maxY));
+  Image rotIm(domain);
+
+  angle = -angle;
+
+  double backX, backY;
+
+  for(int y = minY; y < rotIm.domain().upperBound()[1]; ++y)
+  {
+    for(int x = minX; x < rotIm.domain().upperBound()[0]; ++x)
+    {
+      // Compute backward rotation
+      backX = center[0] + (x - center[0]) * cos(angle) - (y - center[1]) * sin(angle);
+      backY = center[1] + (x - center[0]) * sin(angle) + (y - center[1]) * cos(angle);
+
+      // Ensure position is valid
+      if((backX > image.domain().upperBound()[0]) || (backX < 0))
+        continue;
+      if((backY > image.domain().upperBound()[1]) || (backY < 0))
+        continue;
+
+      rotIm.setValue({x,y}, computeBicubicInterpolation(image, backX, backY));
+    }
+  }
+
+  return rotIm;
 }
 
 Image rotateBackwardBilinearInterpolation(Image image, float angle)
@@ -369,7 +498,6 @@ Image rotateBackwardBilinearInterpolation(Image image, float angle)
       rotIm.setValue({x,y}, computeBilinearInterpolation(image, backX, backY));
     }
   }
-
   return rotIm;
 }
 
@@ -391,7 +519,7 @@ void saveSet(Board2D board, Z2i::DigitalSet set, string path)
   board.saveEPS(path.c_str());
 }
 
-void processImage(Image& image, float angle, METHOD method, int minThresh, int maxThresh)
+void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int minThresh, int maxThresh)
 {
   cout << endl;
 
@@ -452,6 +580,16 @@ void processImage(Image& image, float angle, METHOD method, int minThresh, int m
     cout << "Output save as ../output/rot_BLI.eps" << endl << endl;
   }
 
+  if((method == BICUBIC_INTERPOLATION) || (method == ALL))
+  {
+    cout << "Computing rotation using bicubic interpolation -";
+    Image rotIm = rotateBackwardBicubicInterpolation(imAddDTL, angle);
+    thresholdDTImage(rotIm, rotIm);
+    saveImage(board, rotIm, 0, 255, "../output/rot_BIC.eps");
+    cout << " done." << endl;
+    cout << "Output save as ../output/rot_BIC.eps" << endl << endl;
+  }
+
   imDTToGS(imAddDTL, -maxDT2, maxDT1);
 
   // Create a set for the image and its inverse
@@ -471,7 +609,6 @@ void processImage(Image& image, float angle, METHOD method, int minThresh, int m
 
   cout << endl;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -497,6 +634,8 @@ int main(int argc, char** argv)
     processImage(image, -stof(argv[2]), BILINEAR_INTERPOLATION, stoi(argv[4]), stoi(argv[5]));
   else if(strcmp(argv[3],"nn") == 0)
     processImage(image, -stof(argv[2]), NEAREST_NEIGHBOR, stoi(argv[4]), stoi(argv[5]));
+  else if(strcmp(argv[3], "bic") == 0)
+    processImage(image, -stof(argv[2]), BICUBIC_INTERPOLATION, stoi(argv[4]), stoi(argv[5]));
   else if(strcmp(argv[3], "all") == 0)
     processImage(image, -stof(argv[2]), ALL, stoi(argv[4]), stoi(argv[5]));
   else 
