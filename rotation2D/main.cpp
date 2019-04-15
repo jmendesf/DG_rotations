@@ -190,13 +190,13 @@ void processDT(Image& imDT, bool isInterior)
   {
     for(int x = 0; x < imDT.domain().upperBound()[0]; x++)
     {
-      if(imDT.operator()({x,y}) == 1.){
-        imDT.setValue({x,y}, isInterior ? -0.5 : 0.5);
-      } else
-      {
-        if(isInterior && imDT.operator()({x,y}) != 0)
-          imDT.setValue({x,y}, -imDT.operator()({x,y}));
-      }
+      // if(imDT.operator()({x,y}) == 1.){
+      //   imDT.setValue({x,y}, isInterior ? -0.5 : 0.5);
+      // } else
+      // {
+      if(isInterior && (imDT.operator()({x,y}) != 0))
+        imDT.setValue({x,y}, -imDT.operator()({x,y}));
+      // }
     }
   }
 }
@@ -300,11 +300,13 @@ float computeBilinearInterpolation(Image image, float x, float y)
   return res;
 }
 
+// clamps an integer value
 int clampInt(int value, int low, int high)
 {
   return value < low ? low : value > high ? high : value; 
 }
 
+// assigns the pixel value corresponding to pixel with clamped coordinates (x,y) to val
 void getClampedPixelValue(Image image, int x, int y, float& val)
 {
   int upperBoundX = image.domain().upperBound()[0];
@@ -316,6 +318,7 @@ void getClampedPixelValue(Image image, int x, int y, float& val)
   val = image.operator()({x,y});
 }
 
+// computes the cubic hermic interpolation 
 float cubicHermite(float A, float B, float C, float D, float t)
 {
   float a = -A / 2.0f + (3.0f*B) / 2.0f - (3.0f*C) / 2.0f + D / 2.0f;
@@ -326,6 +329,7 @@ float cubicHermite(float A, float B, float C, float D, float t)
   return a*t*t*t + b*t*t + c*t + d;
 }
 
+// computes the bicubic interpolation of a pixel 
 float computeBicubicInterpolation(Image image, float x, float y)
 {
   int xInt = (int) x;
@@ -339,36 +343,41 @@ float computeBicubicInterpolation(Image image, float x, float y)
   float p02, p12, p22, p32;
   float p03, p13, p23, p33;
 
+  // first row
   getClampedPixelValue(image, xInt - 1, yInt - 1, p00);
   getClampedPixelValue(image, xInt + 0, yInt - 1, p10);
   getClampedPixelValue(image, xInt + 1, yInt - 1, p20);
   getClampedPixelValue(image, xInt + 2, yInt - 1, p30);
 
+  // second row
   getClampedPixelValue(image, xInt - 1, yInt, p01);
   getClampedPixelValue(image, xInt + 0, yInt, p11);
   getClampedPixelValue(image, xInt + 1, yInt, p21);
   getClampedPixelValue(image, xInt + 2, yInt, p31);
 
+  // third row
   getClampedPixelValue(image, xInt - 1, yInt + 1, p02);
   getClampedPixelValue(image, xInt + 0, yInt + 1, p12);
   getClampedPixelValue(image, xInt + 1, yInt + 1, p22);
   getClampedPixelValue(image, xInt + 2, yInt + 1, p32);
 
+  // fourth row
   getClampedPixelValue(image, xInt - 1, yInt + 2, p03);
   getClampedPixelValue(image, xInt + 0, yInt + 2, p13);
   getClampedPixelValue(image, xInt + 1, yInt + 2, p23);
   getClampedPixelValue(image, xInt + 2, yInt + 2, p33);
 
+  // col interpolation
   float col0 = cubicHermite(p00, p10, p20, p30, xFract);
   float col1 = cubicHermite(p01, p11, p21, p31, xFract);
   float col2 = cubicHermite(p02, p12, p22, p32, xFract);
   float col3 = cubicHermite(p03, p13, p23, p33, xFract);
 
+  // return the complete interpolation
   return cubicHermite(col0, col1, col2, col3, yFract);
 }
 
-
-
+// Compute the backward rotation of all pixels of an image using bicubic interpolation
 Image rotateBackwardBicubicInterpolation(Image image, float angle)
 {
   // domain's extrema
@@ -428,6 +437,7 @@ Image rotateBackwardBicubicInterpolation(Image image, float angle)
       if((backY > image.domain().upperBound()[1]) || (backY < 0))
         continue;
 
+      // set value to the value of the bicubic interpolation
       rotIm.setValue({x,y}, computeBicubicInterpolation(image, backX, backY));
     }
   }
