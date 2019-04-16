@@ -30,7 +30,6 @@ using std::string;
 // Print if wrong args
 void usage(bool help)
 {
-  cout << endl;
   cout << "usage: ./rotation2D <path_to_pgm_file> <angle> <method> <minThresh> <maxThresh>" << endl;
   cout << "method: nn (nearest neighbor), bli (bilinear), bic (bicubic), all" << endl;
   
@@ -44,7 +43,6 @@ void usage(bool help)
   {
     cout << "./rotation2D help for more" << endl;
   }
-  cout << endl;
 }
 
 // Save board from image (
@@ -67,8 +65,6 @@ void saveSet(Board2D board, Z2i::DigitalSet set, string path)
 
 void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int minThresh, int maxThresh)
 {
-  cout << endl;
-
   // Create board and set its size
   Board2D board;
   board << image.domain();
@@ -103,38 +99,40 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
   // Add both DT
   Image imAddDTL = addImages(imInvGS, imGS);
 
+  cout << endl;
   // Compute rotations
   // Nearest neighbor
   if((method == NEAREST_NEIGHBOR) || (method == ALL))
   {
-    cout << "Computing rotation using nearest neighbor -";
+    cout << "-- Computing rotation using nearest neighbor -";
     Image rotIm = rotateBackward(imAddDTL, angle, NEAREST_NEIGHBOR);
     thresholdDTImage(rotIm, rotIm);
     saveImage(board, rotIm, 0, 255, "../output/rot_NN.eps");
     cout << " done." << endl;
-    cout << "Output save as ../output/rot_NN.eps" << endl << endl;
+    cout << "   Output saved as ../output/rot_NN.eps" << endl << endl;
   }
   
   // Bilinear interpolation
   if((method == BILINEAR_INTERPOLATION) || (method == ALL))
   {
-    cout << "Computing rotation using bilinear interpolation -";
+    cout << "-- Computing rotation using bilinear interpolation -";
     Image rotIm = rotateBackward(imAddDTL, angle, BILINEAR_INTERPOLATION);
     thresholdDTImage(rotIm, rotIm);
     saveImage(board, rotIm, 0, 255, "../output/rot_BLI.eps");
     cout << " done." << endl;
-    cout << "Output save as ../output/rot_BLI.eps" << endl << endl;
+    cout << "   Output saved as ../output/rot_BLI.eps" << endl << endl;
   }
 
   if((method == BICUBIC_INTERPOLATION) || (method == ALL))
   {
-    cout << "Computing rotation using bicubic interpolation -";
+    cout << "-- Computing rotation using bicubic interpolation -";
     Image rotIm = rotateBackward(imAddDTL, angle, BICUBIC_INTERPOLATION);
     thresholdDTImage(rotIm, rotIm);
     saveImage(board, rotIm, 0, 255, "../output/rot_BIC.eps");
     cout << " done." << endl;
-    cout << "Output save as ../output/rot_BIC.eps" << endl << endl;
+    cout << "   Output saved as ../output/rot_BIC.eps" << endl;
   }
+  cout << endl;
 
   imDTToGS(imAddDTL, -maxDT2, maxDT1);
 
@@ -152,8 +150,6 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
   saveImage(board, imInvGS, 0, 255, "../output/im_inv_GS_DT");
   saveSet(board, set, "../output/set.eps");
   saveSet(board, setInv, "../output/set_inv.eps");
-
-  cout << endl;
 }
 
 int main(int argc, char** argv)

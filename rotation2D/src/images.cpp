@@ -12,7 +12,7 @@ void inverseImage(Image& image)
 Image createImageFromDT(DTL1 dtl1, int maxValue, bool toGS)
 {
   Image im(dtl1.domain());
-  int step;
+  int step = 1;
   if(toGS)
     step = maxValue != 0 ? 255 / maxValue : 0;
 
