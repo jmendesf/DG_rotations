@@ -144,7 +144,7 @@ Image rotateBackward(Image image, float angle, INTERPOLATION_METHOD method)
 
   angle = -angle;
 
-  double backX, backY;
+  float backX, backY;
 
   for(int y = minY; y < rotIm.domain().upperBound()[1]; ++y)
   {
@@ -154,7 +154,6 @@ Image rotateBackward(Image image, float angle, INTERPOLATION_METHOD method)
       backX = center[0] + (x - center[0]) * cos(angle) - (y - center[1]) * sin(angle);
       backY = center[1] + (x - center[0]) * sin(angle) + (y - center[1]) * cos(angle);
 
-    
       // Rounding: Nearest neighbor
       if(method == NEAREST_NEIGHBOR)
       {

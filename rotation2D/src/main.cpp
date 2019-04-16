@@ -1,22 +1,7 @@
-#include <iostream>
-#include <fstream>
-#include <algorithm>
-#include <string>
 #include <boost/algorithm/minmax_element.hpp>
-#include "DGtal/base/Common.h"
-#include "DGtal/helpers/StdDefs.h"
-#include "DGtal/base/BasicFunctors.h"
-#include "DGtal/kernel/BasicPointPredicates.h"
+
 #include "DGtal/kernel/sets/DigitalSetInserter.h"
-#include "DGtal/images/ImageContainerBySTLVector.h"
-#include "DGtal/images/ImageHelper.h"
-#include "DGtal/geometry/volumes/distance/DistanceTransformation.h"
-#include "DGtal/images/IntervalForegroundPredicate.h"
-#include "DGtal/io/boards/Board2D.h"
 #include "DGtal/io/readers/PGMReader.h"
-#include "DGtal/io/colormaps/HueShadeColorMap.h"
-#include "DGtal/io/colormaps/GrayscaleColorMap.h"
-#include "DGtal/images/RigidTransformation2D.h"
 #include "Board/Point.h"
 #include "../include/tools.h" 
 #include "../include/images.h"
@@ -75,7 +60,7 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
   inverseImage(imInv);
 
   // Import image to the board
-  Display2DFactory::drawImage<Gray>(board, image, (unsigned char)0, (unsigned char)255);
+  Display2DFactory::drawImage<Gray>(board, image, (unsigned char)0, static_cast<unsigned char>(255));
 
   // Threshold the image
   Binarizer b(image, minThresh, maxThresh);
@@ -100,6 +85,7 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
   Image imAddDTL = addImages(imInvGS, imGS);
 
   cout << endl;
+
   // Compute rotations
   // Nearest neighbor
   if((method == NEAREST_NEIGHBOR) || (method == ALL))

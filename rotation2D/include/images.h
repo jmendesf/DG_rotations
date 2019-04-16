@@ -18,7 +18,6 @@
 #include "Board/Point.h"
 
 using namespace DGtal;
-using namespace functors;
 
 // Contains all image type definitions and tools to process an input image
 

@@ -16,7 +16,7 @@ Image createImageFromDT(DTL1 dtl1, int maxValue, bool toGS)
   if(toGS)
     step = maxValue != 0 ? 255 / maxValue : 0;
 
-  int value;
+  float value;
 
   for(int y = 0; y < im.domain().upperBound()[1]; ++y)
     for(int x = 0; x < im.domain().upperBound()[0]; ++x)
@@ -84,7 +84,7 @@ Image addImages(DTL2 dtl2Im1, DTL2 dtl2Im2)
   int step = maxDT2 != 0 ? 255 / maxDT2 : 1;
   int step2 = maxDT1 != 0 ? 255 / maxDT1 : 1;
 
-  int value, value2;
+  float value, value2;
 
   for(int y = 0; y < im.domain().upperBound()[1]; ++y)
   {
