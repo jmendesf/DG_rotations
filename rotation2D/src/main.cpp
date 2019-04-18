@@ -15,22 +15,24 @@ using std::string;
 // Print if wrong args
 void usage(bool help)
 {
-  cout << "usage: ./rotation2D <path_to_pgm_file> <angle> <method> <minThresh> <maxThresh>" << endl;
-  cout << "method: nn (nearest neighbor), bli (bilinear), bic (bicubic), all" << endl;
+  cout << "-- Usage" << endl;
+  cout << "   ./rotation2D <file> <angle> <method> [<minThresh> <maxThresh>]" << endl;
+  cout << "   method: nn (nearest neighbor), bli (bilinear), bic (bicubic), all" << endl;
   
   if(help)
   {
-    cout << endl << "Threshold values:" << endl;
-    cout << "ContourS.pgm: 1, 135" << endl;
-    cout << "key.pgm: 150, 255" << endl << endl;
-    cout << "example: ./rotation2D ../samples/contourS.pgm 2.5 all 1 135" << endl;
+    cout << endl;
+    cout << "-- Help" << endl;
+    cout << "   Threshold values are needed if the image is not binary" << endl;
+    cout << "   example (non binary): ./rotation2D ../samples/contourS.pgm 2.5 all 1 135" << endl;
+    cout << "   example (binary): ./rotation2D ../samples/sw.pgm 2.5 all" << endl;
   } else
-  {
-    cout << "./rotation2D help for more" << endl;
-  }
+    cout << endl << "./rotation2D help for more" << endl;
+  
+  cout << endl;
 }
 
-// Save board from image (
+// Save board from image (  
 // Save to path
 void saveImage(Board2D board, Image image, int minVal, int maxVal, string path)
 {
@@ -86,39 +88,66 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
 
   cout << endl;
 
-  // Compute rotations
-  // Nearest neighbor
-  if((method == NEAREST_NEIGHBOR) || (method == ALL))
-  {
-    cout << "-- Computing rotation using nearest neighbor -";
-    Image rotIm = rotateBackward(imAddDTL, angle, NEAREST_NEIGHBOR);
-    thresholdDTImage(rotIm, rotIm);
-    saveImage(board, rotIm, 0, 255, "../output/rot_NN.eps");
-    cout << " done." << endl;
-    cout << "   Output saved as ../output/rot_NN.eps" << endl << endl;
-  }
+  int nbRot = 1;
+  cout << "Number of " << -angle << " rad consecutive rotation: ";
+  std::cin >> nbRot;
+  nbRot = std::abs(nbRot);
   
-  // Bilinear interpolation
-  if((method == BILINEAR_INTERPOLATION) || (method == ALL))
-  {
-    cout << "-- Computing rotation using bilinear interpolation -";
-    Image rotIm = rotateBackward(imAddDTL, angle, BILINEAR_INTERPOLATION);
-    thresholdDTImage(rotIm, rotIm);
-    saveImage(board, rotIm, 0, 255, "../output/rot_BLI.eps");
-    cout << " done." << endl;
-    cout << "   Output saved as ../output/rot_BLI.eps" << endl << endl;
-  }
+  string path;
+  Image imSave(imAddDTL.domain());
 
-  if((method == BICUBIC_INTERPOLATION) || (method == ALL))
+  Image imNN = imAddDTL;
+  Image imBil = imAddDTL;
+  Image imBic = imAddDTL;
+
+  // Repeat the rotation nbRot times
+  for(int i = 0; i < nbRot; ++i)
   {
-    cout << "-- Computing rotation using bicubic interpolation -";
-    Image rotIm = rotateBackward(imAddDTL, angle, BICUBIC_INTERPOLATION);
-    thresholdDTImage(rotIm, rotIm);
-    saveImage(board, rotIm, 0, 255, "../output/rot_BIC.eps");
-    cout << " done." << endl;
-    cout << "   Output saved as ../output/rot_BIC.eps" << endl;
-  }
-  cout << endl;
+    // Nearest neighbor
+    cout << "Rotation #" << i + 1 << ": " << endl;
+    if((method == NEAREST_NEIGHBOR) || (method == ALL))
+    {
+      cout << "-- Computing rotation using nearest neighbor -";
+      imNN = rotateBackward(imNN, angle, NEAREST_NEIGHBOR);
+      Image rotIm(resizeImage(imNN));
+
+      thresholdDTImage(imNN, rotIm);
+      path = "../output/rotation_NN/rot_NN" + std::to_string(i + 1) + ".eps";
+      saveImage(board, rotIm, 0, 255, path);
+      cout << " done." << endl;
+      cout << "   Output saved as " << path << endl;
+    }
+    
+    // Bilinear interpolation
+    if((method == BILINEAR_INTERPOLATION) || (method == ALL))
+    {
+      cout << "-- Computing rotation using bilinear interpolation -";
+      imBil = rotateBackward(imBil, angle, BILINEAR_INTERPOLATION);
+      
+      Image rotIm(resizeImage(imBil));
+      
+      thresholdDTImage(imBil, rotIm);
+      path = "../output/rotation_BIL/rot_BLI" + std::to_string(i + 1) + ".eps";
+      saveImage(board, rotIm, 0, 255, path);
+      cout << " done." << endl;
+      cout << "   Output saved as " << path << endl;
+    }
+
+    // Bicubic interpolation
+    if((method == BICUBIC_INTERPOLATION) || (method == ALL))
+    {
+      cout << "-- Computing rotation using bicubic interpolation -";
+      imBic = rotateBackward(imBic, angle, BICUBIC_INTERPOLATION);
+      Image rotIm(resizeImage(imBic));
+      thresholdDTImage(imBic, rotIm);   
+      path = "../output/rotation_BIC/rot_BIC" + std::to_string(i + 1) + ".eps";
+      saveImage(board, rotIm, 0, 255, path);
+      cout << " done." << endl;
+      cout << "   Output saved as " << path << endl;
+    }
+    cout << endl;
+  } 
+  
 
   imDTToGS(imAddDTL, -maxDT2, maxDT1);
 
@@ -131,11 +160,11 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
   DGtal::setFromImage(imInv, inserterInv, 1, 135);
 
   // Save output 
-  saveImage(board, imAddDTL, 0, 255, "../output/im_add_DT.eps");
-  saveImage(board, imGS, 0, 255, "../output/im_GS_DT.eps");
-  saveImage(board, imInvGS, 0, 255, "../output/im_inv_GS_DT");
-  saveSet(board, set, "../output/set.eps");
-  saveSet(board, setInv, "../output/set_inv.eps");
+  saveImage(board, imAddDTL, 0, 255, "../output/dt_set/im_add_DT.eps");
+  saveImage(board, imGS, 0, 255, "../output/dt_set/im_GS_DT.eps");
+  saveImage(board, imInvGS, 0, 255, "../output/dt_set/im_inv_GS_DT");
+  saveSet(board, set, "../output/dt_set/set.eps");
+  saveSet(board, setInv, "../output/dt_set/set_inv.eps");
 }
 
 int main(int argc, char** argv)
@@ -148,7 +177,7 @@ int main(int argc, char** argv)
     }
 
   // Check args
-  if(argc != 6)
+  if(argc != 6 && argc != 4)
   {
     usage(false);
     return 0;
@@ -157,15 +186,18 @@ int main(int argc, char** argv)
   // Load image
   Image image = PGMReader<Image>::importPGM(argv[1]);
   
+  int minThresh = (argc == 4) ? 254 : std::stoi(argv[4]);
+  int maxThresh = (argc == 4) ? 255 : std::stoi(argv[5]);
+
   // process depending on the user's choice
   if(strcmp(argv[3], "bli") == 0)
-    processImage(image, -std::stof(argv[2]), BILINEAR_INTERPOLATION, std::stoi(argv[4]), std::stoi(argv[5]));
+    processImage(image, -std::stof(argv[2]), BILINEAR_INTERPOLATION, minThresh, maxThresh);
   else if(strcmp(argv[3],"nn") == 0)
-    processImage(image, -std::stof(argv[2]), NEAREST_NEIGHBOR, std::stoi(argv[4]), std::stoi(argv[5]));
+    processImage(image, -std::stof(argv[2]), NEAREST_NEIGHBOR, minThresh, maxThresh);
   else if(strcmp(argv[3], "bic") == 0)
-    processImage(image, -std::stof(argv[2]), BICUBIC_INTERPOLATION, std::stoi(argv[4]), std::stoi(argv[5]));
+    processImage(image, -std::stof(argv[2]), BICUBIC_INTERPOLATION, minThresh, maxThresh);
   else if(strcmp(argv[3], "all") == 0)
-    processImage(image, -std::stof(argv[2]), ALL, std::stoi(argv[4]), std::stoi(argv[5]));
+    processImage(image, -std::stof(argv[2]), ALL, minThresh, maxThresh);
   else 
     usage(false); 
 

@@ -42,3 +42,4 @@ Image addImages(DTL2 dtl2Im1, DTL2 dtl2Im2);
 void imDTToGS(Image& imDT, int minValue, int maxValue);
 void thresholdDTImage(Image src, Image& dst);
 void processDT(Image& imDT, bool isInterior);
+Z2i::Domain resizeImage(Image& image);

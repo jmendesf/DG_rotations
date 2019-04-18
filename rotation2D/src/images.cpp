@@ -126,11 +126,12 @@ void imDTToGS(Image& imDT, int minValue, int maxValue)
 // if pixel is negative: 255 (foreground)
 void thresholdDTImage(Image src, Image& dst)
 {
-  for(int y = src.domain().lowerBound()[1]; y < src.domain().upperBound()[1]; y++)
+  for(int y = dst.domain().lowerBound()[1]; y < dst.domain().upperBound()[1]; y++)
   {
-    for(int x = src.domain().lowerBound()[0]; x < src.domain().upperBound()[0]; x++)
+    for(int x = dst.domain().lowerBound()[0]; x < dst.domain().upperBound()[0]; x++)
     {
-      dst.setValue({x,y}, src.operator()({x,y}) < 0 ? 255 : 0);
+        if(src.domain().isInside(PointVector<2,int>(x,y)))
+        dst.setValue({x,y}, src.operator()({x,y}) < 0 ? 255 : 0);
     }
   }
 }
@@ -152,4 +153,78 @@ void processDT(Image& imDT, bool isInterior)
       // }
     }
   }
+}
+
+// Supposed to resize a given image by modifying the domain
+// Cant modify the domain yet
+Z2i::Domain resizeImage(Image& image)
+{
+  int xMin = 0, xMax = 0, yMin = 0, yMax = 0;
+  bool breakFor = false;
+  for(int y = image.domain().lowerBound()[1]; y < image.domain().upperBound()[1]; ++y)
+  {
+    for(int x = image.domain().lowerBound()[0]; x < image.domain().upperBound()[0]; ++x)
+      if(image.operator()({x,y}) < 0)
+      {
+        yMin = y - 3;
+        breakFor = true;
+        break;
+      }
+    if(breakFor)
+      break;
+  }
+  breakFor = false;    
+
+  for(int x = image.domain().lowerBound()[0]; x < image.domain().upperBound()[0]; ++x)
+  {
+    for(int y = image.domain().lowerBound()[1]; y < image.domain().upperBound()[1]; ++y)
+      if(image.operator()({x,y}) < 0)
+      {
+        xMin = x - 3;
+
+        breakFor = true;
+        break;
+      }
+    if(breakFor)
+      break;
+  }
+  breakFor = false;    
+
+    
+  for(int x = image.domain().upperBound()[0]; x > image.domain().lowerBound()[0]; --x)
+  {
+    for(int y = image.domain().lowerBound()[1]; y < image.domain().upperBound()[1]; ++y)
+    {
+      if(image.operator()({x,y}) < 0)
+      {
+        xMax = x + 3;
+
+        breakFor = true;
+        break;
+      } 
+    }
+      
+    if(breakFor)
+      break;
+  }
+  breakFor = false;    
+
+    
+      
+
+  for(int y = image.domain().upperBound()[1]; y > image.domain().lowerBound()[1]; --y)
+  {
+    for(int x = image.domain().lowerBound()[1]; x < image.domain().upperBound()[0]; ++x)
+      if(image.operator()({x,y}) < 0)
+      {
+        yMax = y + 3;
+        breakFor = true;
+        break;
+      }
+    if(breakFor)
+      break;
+  }
+    
+
+  return Z2i::Domain(Z2i::Point(xMin, yMin), Z2i::Point(xMax, yMax));
 }
