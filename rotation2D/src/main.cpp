@@ -98,7 +98,7 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
 
   Image imNN = imAddDTL;
   Image imBil = imAddDTL;
-  Image imBic = imAddDTL;
+  // Image imBic = imAddDTL;
 
   // Repeat the rotation nbRot times
   for(int i = 0; i < nbRot; ++i)
@@ -133,6 +133,7 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
       cout << "   Output saved as " << path << endl;
     }
 
+    /*
     // Bicubic interpolation
     if((method == BICUBIC_INTERPOLATION) || (method == ALL))
     {
@@ -145,6 +146,7 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
       cout << " done." << endl;
       cout << "   Output saved as " << path << endl;
     }
+    */
     cout << endl;
   } 
   
