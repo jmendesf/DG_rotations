@@ -161,30 +161,38 @@ Z2i::Domain resizeImage(Image& image)
 {
   int xMin = 0, xMax = 0, yMin = 0, yMax = 0;
   bool breakFor = false;
+  
   for(int y = image.domain().lowerBound()[1]; y < image.domain().upperBound()[1]; ++y)
-  {
+  { 
     for(int x = image.domain().lowerBound()[0]; x < image.domain().upperBound()[0]; ++x)
+    {
       if(image.operator()({x,y}) < 0)
       {
         yMin = y - 3;
         breakFor = true;
         break;
       }
+      
+    }
     if(breakFor)
-      break;
+        break;  
   }
   breakFor = false;    
 
   for(int x = image.domain().lowerBound()[0]; x < image.domain().upperBound()[0]; ++x)
   {
+        
+
     for(int y = image.domain().lowerBound()[1]; y < image.domain().upperBound()[1]; ++y)
+    {
       if(image.operator()({x,y}) < 0)
       {
         xMin = x - 3;
-
         breakFor = true;
         break;
       }
+    } 
+      
     if(breakFor)
       break;
   }
@@ -207,20 +215,20 @@ Z2i::Domain resizeImage(Image& image)
     if(breakFor)
       break;
   }
-  breakFor = false;    
-
-    
-      
+  breakFor = false;     
 
   for(int y = image.domain().upperBound()[1]; y > image.domain().lowerBound()[1]; --y)
   {
-    for(int x = image.domain().lowerBound()[1]; x < image.domain().upperBound()[0]; ++x)
+    for(int x = image.domain().lowerBound()[0]; x < image.domain().upperBound()[0]; ++x)
+    {
       if(image.operator()({x,y}) < 0)
       {
         yMax = y + 3;
         breakFor = true;
         break;
       }
+    }
+      
     if(breakFor)
       break;
   }

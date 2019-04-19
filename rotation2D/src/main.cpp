@@ -68,7 +68,6 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
   Binarizer b(image, minThresh, maxThresh);
   Binarizer bInv(imInv, minThresh, maxThresh);
 
-  // DTL2 dtl2(&image.domain(), &b, &Z2i::l2Metric);
   DTL2 dtl2(&image.domain(), &b, &Z2i::l2Metric);
   DTL2 dtl2Inv(&imInv.domain(), &bInv, &Z2i::l2Metric);  
 
@@ -98,7 +97,7 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
 
   Image imNN = imAddDTL;
   Image imBil = imAddDTL;
-  // Image imBic = imAddDTL;
+  Image imBic = imAddDTL;
 
   // Repeat the rotation nbRot times
   for(int i = 0; i < nbRot; ++i)
@@ -109,9 +108,10 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
     {
       cout << "-- Computing rotation using nearest neighbor -";
       imNN = rotateBackward(imNN, angle, NEAREST_NEIGHBOR);
-      Image rotIm(resizeImage(imNN));
-
+      Image rotIm = (imNN.domain());  
+      //Image rotIm(resizeImage(imNN));
       thresholdDTImage(imNN, rotIm);
+
       path = "../output/rotation_NN/rot_NN" + std::to_string(i + 1) + ".eps";
       saveImage(board, rotIm, 0, 255, path);
       cout << " done." << endl;
@@ -123,30 +123,31 @@ void processImage(Image& image, float angle, INTERPOLATION_METHOD method, int mi
     {
       cout << "-- Computing rotation using bilinear interpolation -";
       imBil = rotateBackward(imBil, angle, BILINEAR_INTERPOLATION);
-      
       Image rotIm(resizeImage(imBil));
-      
       thresholdDTImage(imBil, rotIm);
+
       path = "../output/rotation_BIL/rot_BLI" + std::to_string(i + 1) + ".eps";
       saveImage(board, rotIm, 0, 255, path);
       cout << " done." << endl;
       cout << "   Output saved as " << path << endl;
     }
 
-    /*
     // Bicubic interpolation
     if((method == BICUBIC_INTERPOLATION) || (method == ALL))
     {
       cout << "-- Computing rotation using bicubic interpolation -";
       imBic = rotateBackward(imBic, angle, BICUBIC_INTERPOLATION);
+      
       Image rotIm(resizeImage(imBic));
-      thresholdDTImage(imBic, rotIm);   
+      //saveImage(board, imBic, -30, 20, "../test.eps");
+      thresholdDTImage(imBic, rotIm);  
+
       path = "../output/rotation_BIC/rot_BIC" + std::to_string(i + 1) + ".eps";
       saveImage(board, rotIm, 0, 255, path);
       cout << " done." << endl;
       cout << "   Output saved as " << path << endl;
     }
-    */
+    
     cout << endl;
   } 
   

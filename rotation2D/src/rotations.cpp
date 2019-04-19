@@ -162,12 +162,14 @@ Image rotateBackward(Image image, float angle, INTERPOLATION_METHOD method)
       }
       
       // Ensure position is valid
-      if((backX >= image.domain().upperBound()[0]) || (backX < 0))
+      if(((int)backX >= image.domain().upperBound()[0]) || ((int)backX <= image.domain().lowerBound()[0]))
         continue;
 
-      if((backY >= image.domain().upperBound()[1]) || (backY < 0))
+      if(((int)backY >= image.domain().upperBound()[1]) || ((int)backY <= image.domain().lowerBound()[1]))
         continue;  
 
+
+      
       // Set the value in the rotated Image
       // Nearest neighbor
       if(method == NEAREST_NEIGHBOR)
@@ -175,7 +177,10 @@ Image rotateBackward(Image image, float angle, INTERPOLATION_METHOD method)
       else if(method == BILINEAR_INTERPOLATION)
         rotIm.setValue({x,y}, computeBilinearInterpolation(image, backX, backY));
       else if(method == BICUBIC_INTERPOLATION)
+      {
         rotIm.setValue({x,y}, computeBicubicInterpolation(image, backX, backY));
+      }
+        
     }
   }
   return rotIm;
