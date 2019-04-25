@@ -16,17 +16,18 @@
 #include "DGtal/io/colormaps/HueShadeColorMap.h"
 #include "DGtal/io/colormaps/GrayscaleColorMap.h"
 #include "Board/Point.h"
+#include "DGtal/images/ImageSelector.h"
 
 using namespace DGtal;
 
 // Contains all image type definitions and tools to process an input image
 
 // 2D image definition
-typedef ImageContainerBySTLVector<Z2i::Domain, float>  Image;
+typedef ImageContainerBySTLVector<Z2i::Domain, float> Image;
 // Grayscale mapping
 typedef GrayscaleColorMap<float> Gray;
 // Binarizer
-typedef functors::IntervalForegroundPredicate<Image> Binarizer;  
+typedef functors::IntervalForegroundPredicate<Image> Binarizer;
 
 // Create and apply a distance transform to the binary image with the L2 norm
 // Def L1 norm aswell
@@ -34,12 +35,20 @@ typedef DistanceTransformation<Z2i::Space, Binarizer, Z2i::L2Metric> DTL2;
 typedef DistanceTransformation<Z2i::Space, Binarizer, Z2i::L1Metric> DTL1;
 
 
-void inverseImage(Image& image);
+void inverseImage(Image &image);
+
 Image createImageFromDT(DTL1 dtl1, int maxValue, bool toGS);
+
 Image createImageFromDT(DTL2 dtl2, int maxValue, bool toGS);
+
 Image addImages(Image im1, Image im2);
+
 Image addImages(DTL2 dtl2Im1, DTL2 dtl2Im2);
-void imDTToGS(Image& imDT, int minValue, int maxValue);
-void thresholdDTImage(Image src, Image& dst);
-void processDT(Image& imDT, bool isInterior);
-Z2i::Domain resizeImage(Image& image);
+
+void imDTToGS(Image &imDT, int minValue, int maxValue);
+
+void thresholdDTImage(Image src, Image &dst);
+
+void processDT(Image &imDT, bool isInterior);
+
+Z2i::Domain getResizedDomain(Image &image);
