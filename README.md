@@ -28,7 +28,7 @@ The input image must be of .pgm format.
 
 ``` ./rotation2D ../samples/oval.pgm 1. all``` 
 ### Output
-The program will store the output files in `output/` file in the `rotation2D/` directory (if the program was runned from the `build/` directory. 
+The program will store the output files in `output/` file in the `rotation2D/` directory (if the program was ran from the `build/` directory. 
 
 The `pre_processing/` folder allows to visualise the steps necessary to the preparation of the data for interpolation.
 The `rotation_NN/`, `rotation_BIL/` and `rotation_BIC/` folders contain respectively the results of the rotation using nearest neighbor interpolation, bilinear interpolation and bicubic interpolation, in the .pgm and .eps formats.
