@@ -150,9 +150,9 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         cout << "-- Computing rotation using bicubic interpolation -";
         imBic = rotateBackward(imBic, angle, BICUBIC_INTERPOLATION);
         Image rotIm(getResizedDomain(imBic));
-
         // Thresholding operations
         thresholdDTImage(imBic, rotIm);
+
         ImagePGM pgm = thresholdToPGM(imBic);
 
         // Saves

@@ -140,7 +140,6 @@ Image rotateBackward(Image image, float angle, INTERPOLATION_METHOD method) {
     Image rotIm(domain);
 
     angle = -angle;
-
     float backX, backY;
 
     for (int y = minY; y < rotIm.domain().upperBound()[1]; ++y) {

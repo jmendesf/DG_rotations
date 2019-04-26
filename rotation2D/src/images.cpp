@@ -143,7 +143,7 @@ Z2i::Domain getResizedDomain(Image &image) {
     for (int y = image.domain().lowerBound()[1]; y <= image.domain().upperBound()[1]; ++y) {
         for (int x = image.domain().lowerBound()[0]; x <= image.domain().upperBound()[0]; ++x) {
             if (image.operator()({x, y}) < 0) {
-                yMin = y - 5;
+                yMin = y;
                 breakFor = true;
                 break;
             }
@@ -156,7 +156,7 @@ Z2i::Domain getResizedDomain(Image &image) {
     for (int x = image.domain().lowerBound()[0]; x < image.domain().upperBound()[0]; ++x) {
         for (int y = image.domain().lowerBound()[1]; y < image.domain().upperBound()[1]; ++y) {
             if (image.operator()({x, y}) < 0) {
-                xMin = x - 5;
+                xMin = x;
                 breakFor = true;
                 break;
             }
@@ -170,7 +170,7 @@ Z2i::Domain getResizedDomain(Image &image) {
     for (int x = image.domain().upperBound()[0]; x > image.domain().lowerBound()[0]; --x) {
         for (int y = image.domain().lowerBound()[1]; y < image.domain().upperBound()[1]; ++y) {
             if (image.operator()({x, y}) < 0) {
-                xMax = x + 5;
+                xMax = x;
                 breakFor = true;
                 break;
             }
@@ -183,7 +183,7 @@ Z2i::Domain getResizedDomain(Image &image) {
     for (int y = image.domain().upperBound()[1]; y > image.domain().lowerBound()[1]; --y) {
         for (int x = image.domain().lowerBound()[0]; x < image.domain().upperBound()[0]; ++x) {
             if (image.operator()({x, y}) < 0) {
-                yMax = y + 5;
+                yMax = y;
                 breakFor = true;
                 break;
             }
@@ -198,6 +198,7 @@ Z2i::Domain getResizedDomain(Image &image) {
 ImagePGM thresholdToPGM(Image image)
 {
     ImagePGM pgm(getResizedDomain(image));
+
     for(int y = pgm.domain().lowerBound()[1]; y <= pgm.domain().upperBound()[1]; ++y)
     {
         for(int x = pgm.domain().lowerBound()[0]; x <= pgm.domain().upperBound()[0]; ++x)
