@@ -5,6 +5,7 @@
 #include "../include/tools.h"
 #include "../include/images.h"
 #include "../include/rotations.h"
+#include "DGtal/io/writers/PGMWriter.h"
 
 using std::cout;
 using std::endl;
@@ -14,15 +15,15 @@ using std::string;
 void usage(bool help) {
     cout << endl;
     cout << "-- Usage" << endl;
-    cout << "   ./rotation2D <file> <angle> <method> [<minThresh> <maxThresh>] <saveName>" << endl;
-    cout << "   method: nn (nearest neighbor), bli (bilinear), bic (bicubic), all <saveName>" << endl;
+    cout << "   ./rotation2D <file> <angle> <method> [<minThresh> <maxThresh>]" << endl;
+    cout << "   method: nn (nearest neighbor), bli (bilinear), bic (bicubic), all " << endl;
 
     if (help) {
         cout << endl;
         cout << "-- Help" << endl;
         cout << "   Threshold values are needed if the image is not binary" << endl;
-        cout << "   example: ./rotation2D ../samples/contourS.pgm 2.5 all 1 135 myBinarySave" << endl;
-        cout << "   (if binary): ./rotation2D ../samples/sw.pgm 2.5 all myBinarySave" << endl;
+        cout << "   example: ./rotation2D ../samples/contourS.pgm 2.5 all 1 135" << endl;
+        cout << "   (if binary): ./rotation2D ../samples/sw.pgm 2.5 all" << endl;
     } else
         cout << " - ./rotation2D help for more" << endl;
 
@@ -45,7 +46,7 @@ void saveSet(Board2D board, Z2i::DigitalSet set, string path) {
     board.saveEPS(path.c_str());
 }
 
-void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int minThresh, int maxThresh, string saveName) {
+void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int minThresh, int maxThresh) {
     // Create board and set its size
     Board2D board;
     board << image.domain();
@@ -104,9 +105,12 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         cout << "-- Computing rotation using nearest neighbor -";
         imNN = rotateBackward(imNN, angle, NEAREST_NEIGHBOR);
         Image rotIm(getResizedDomain(imNN));
-        thresholdDTImage(imNN, rotIm);
 
-        path = "../output/rotation_NN/" + saveName + ".eps";
+        thresholdDTImage(imNN, rotIm);
+        ImagePGM pgm = thresholdToPGM(imNN);
+        PGMWriter<ImagePGM>::exportPGM("../output/rotation_NN/NN.pgm", pgm);
+
+        path = "../output/rotation_NN/NN.eps";
         saveImage(board, rotIm, 0, 255, path);
         cout << " done." << endl;
         cout << "   Output saved as " << path << endl;
@@ -116,10 +120,13 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     if ((method == BILINEAR_INTERPOLATION) || (method == ALL)) {
         cout << "-- Computing rotation using bilinear interpolation -";
         imBil = rotateBackward(imBil, angle, BILINEAR_INTERPOLATION);
+
         Image rotIm(getResizedDomain(imBil));
         thresholdDTImage(imBil, rotIm);
+        ImagePGM pgm = thresholdToPGM(imBil);
 
-        path = "../output/rotation_BIL/" + saveName + ".eps";
+        PGMWriter<ImagePGM>::exportPGM("../output/rotation_BIL/bil.pgm", pgm);
+        path = "../output/rotation_BIL/bil.eps";
         saveImage(board, rotIm, 0, 255, path);
         cout << " done." << endl;
         cout << "   Output saved as " << path << endl;
@@ -132,8 +139,10 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
 
         Image rotIm(getResizedDomain(imBic));
         thresholdDTImage(imBic, rotIm);
+        ImagePGM pgm = thresholdToPGM(imBic);
 
-        path = "../output/rotation_BIC/" + saveName + ".eps";
+        PGMWriter<ImagePGM>::exportPGM("../output/rotation_BIC/bic.pgm", pgm);
+        path = "../output/rotation_BIC/bic.eps";
         saveImage(board, rotIm, 0, 255, path);
         cout << " done." << endl;
         cout << "   Output saved as " << path << endl;
@@ -168,7 +177,7 @@ int main(int argc, char **argv) {
         }
 
     // Check args
-    if (argc != 7 && argc != 5) {
+    if (argc != 6 && argc != 4) {
         usage(false);
         return 0;
     }
@@ -176,21 +185,19 @@ int main(int argc, char **argv) {
     // Load image
     Image image = PGMReader<Image>::importPGM(argv[1]);
 
-    int minThresh = (argc == 5) ? 254 : std::stoi(argv[4]);
-    int maxThresh = (argc == 5) ? 255 : std::stoi(argv[5]);
+    int minThresh = (argc == 4) ? 254 : std::stoi(argv[4]);
+    int maxThresh = (argc == 4) ? 255 : std::stoi(argv[5]);
 
-    // always choose the last argument
-    string saveName = argc == 5 ? argv[4] : argv[6];
 
     // process depending on the user's choice
     if (strcmp(argv[3], "bli") == 0)
-        processImage(image, -std::stof(argv[2]), BILINEAR_INTERPOLATION, minThresh, maxThresh, saveName);
+        processImage(image, -std::stof(argv[2]), BILINEAR_INTERPOLATION, minThresh, maxThresh);
     else if (strcmp(argv[3], "nn") == 0)
-        processImage(image, -std::stof(argv[2]), NEAREST_NEIGHBOR, minThresh, maxThresh, saveName);
+        processImage(image, -std::stof(argv[2]), NEAREST_NEIGHBOR, minThresh, maxThresh);
     else if (strcmp(argv[3], "bic") == 0)
-        processImage(image, -std::stof(argv[2]), BICUBIC_INTERPOLATION, minThresh, maxThresh, saveName);
+        processImage(image, -std::stof(argv[2]), BICUBIC_INTERPOLATION, minThresh, maxThresh);
     else if (strcmp(argv[3], "all") == 0)
-        processImage(image, -std::stof(argv[2]), ALL, minThresh, maxThresh, saveName);
+        processImage(image, -std::stof(argv[2]), ALL, minThresh, maxThresh);
     else
         usage(false);
 

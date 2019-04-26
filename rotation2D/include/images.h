@@ -24,6 +24,7 @@ using namespace DGtal;
 
 // 2D image definition
 typedef ImageContainerBySTLVector<Z2i::Domain, float> Image;
+typedef ImageSelector<Z2i::Domain, unsigned char>::Type ImagePGM;
 // Grayscale mapping
 typedef GrayscaleColorMap<float> Gray;
 // Binarizer
@@ -52,3 +53,5 @@ void thresholdDTImage(Image src, Image &dst);
 void processDT(Image &imDT, bool isInterior);
 
 Z2i::Domain getResizedDomain(Image &image);
+
+ImagePGM thresholdToPGM(Image image);

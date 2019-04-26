@@ -198,3 +198,16 @@ Z2i::Domain getResizedDomain(Image &image) {
 
     return Z2i::Domain(Z2i::Point(xMin, yMin), Z2i::Point(xMax, yMax));
 }
+
+ImagePGM thresholdToPGM(Image image)
+{
+    ImagePGM pgm(getResizedDomain(image));
+    for(int y = pgm.domain().lowerBound()[1]; y <= pgm.domain().upperBound()[1]; ++y)
+    {
+        for(int x = pgm.domain().lowerBound()[0]; x <= pgm.domain().upperBound()[0]; ++x)
+        {
+            pgm.setValue({x,y}, image.operator()({x,y}) >= 0 ? 0 : 255);
+        }
+    }
+    return pgm;
+}
