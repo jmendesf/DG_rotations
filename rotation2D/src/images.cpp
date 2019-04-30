@@ -124,11 +124,11 @@ void thresholdDTImage(Image src, Image &dst) {
 void processDT(Image &imDT, bool isInterior) {
     for (int y = imDT.domain().lowerBound()[1]; y <= imDT.domain().upperBound()[1]; y++) {
         for (int x = imDT.domain().lowerBound()[0]; x <= imDT.domain().upperBound()[0]; x++) {
-            if(imDT.operator()({x,y}) == 1.){
-               imDT.setValue({x,y}, isInterior ? -0.5 : 0.5);
-             } else {
-            if (isInterior && (imDT.operator()({x, y}) != 0))
-                imDT.setValue({x, y}, -imDT.operator()({x, y}));
+            if (imDT.operator()({x, y}) == 1.) {
+                imDT.setValue({x, y}, isInterior ? -0.5 : 0.5);
+            } else {
+                if (isInterior && (imDT.operator()({x, y}) != 0))
+                    imDT.setValue({x, y}, -imDT.operator()({x, y}));
             }
         }
     }
@@ -143,7 +143,7 @@ Z2i::Domain getResizedDomain(Image &image) {
     for (int y = image.domain().lowerBound()[1]; y <= image.domain().upperBound()[1]; ++y) {
         for (int x = image.domain().lowerBound()[0]; x <= image.domain().upperBound()[0]; ++x) {
             if (image.operator()({x, y}) < 0) {
-                yMin = y;
+                yMin = y - 1;
                 breakFor = true;
                 break;
             }
@@ -156,7 +156,7 @@ Z2i::Domain getResizedDomain(Image &image) {
     for (int x = image.domain().lowerBound()[0]; x < image.domain().upperBound()[0]; ++x) {
         for (int y = image.domain().lowerBound()[1]; y < image.domain().upperBound()[1]; ++y) {
             if (image.operator()({x, y}) < 0) {
-                xMin = x;
+                xMin = x - 1;
                 breakFor = true;
                 break;
             }
@@ -170,7 +170,7 @@ Z2i::Domain getResizedDomain(Image &image) {
     for (int x = image.domain().upperBound()[0]; x > image.domain().lowerBound()[0]; --x) {
         for (int y = image.domain().lowerBound()[1]; y < image.domain().upperBound()[1]; ++y) {
             if (image.operator()({x, y}) < 0) {
-                xMax = x;
+                xMax = x + 1;
                 breakFor = true;
                 break;
             }
@@ -183,7 +183,7 @@ Z2i::Domain getResizedDomain(Image &image) {
     for (int y = image.domain().upperBound()[1]; y > image.domain().lowerBound()[1]; --y) {
         for (int x = image.domain().lowerBound()[0]; x < image.domain().upperBound()[0]; ++x) {
             if (image.operator()({x, y}) < 0) {
-                yMax = y;
+                yMax = y + 1;
                 breakFor = true;
                 break;
             }
@@ -195,15 +195,12 @@ Z2i::Domain getResizedDomain(Image &image) {
     return Z2i::Domain(Z2i::Point(xMin, yMin), Z2i::Point(xMax, yMax));
 }
 
-ImagePGM thresholdToPGM(Image image)
-{
+ImagePGM thresholdToPGM(Image image) {
     ImagePGM pgm(getResizedDomain(image));
 
-    for(int y = pgm.domain().lowerBound()[1]; y <= pgm.domain().upperBound()[1]; ++y)
-    {
-        for(int x = pgm.domain().lowerBound()[0]; x <= pgm.domain().upperBound()[0]; ++x)
-        {
-            pgm.setValue({x,y}, image.operator()({x,y}) >= 0 ? 0 : 255);
+    for (int y = pgm.domain().lowerBound()[1]; y <= pgm.domain().upperBound()[1]; ++y) {
+        for (int x = pgm.domain().lowerBound()[0]; x <= pgm.domain().upperBound()[0]; ++x) {
+            pgm.setValue({x, y}, image.operator()({x, y}) >= 0 ? 0 : 255);
         }
     }
     return pgm;
