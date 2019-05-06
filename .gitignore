@@ -1,0 +1,4 @@
+# ignore vscodium files
+.vscode
+# ignore cmake build debug files
+cmake-build-debug/
