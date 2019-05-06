@@ -72,6 +72,7 @@ int main(int argc, char **argv) {
     QApplication application(argc,argv);
     Viewer3D<> viewer;
     viewer.setWindowTitle("simpleViewer");
+
     viewer.show();
 
     //Default image selector = STLVector
