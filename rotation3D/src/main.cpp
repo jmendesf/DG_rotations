@@ -4,6 +4,8 @@
 #include "DGtal/kernel/domains/HyperRectDomain.h"
 #include "DGtal/images/ImageSelector.h"
 #include "DGtal/io/readers/VolReader.h"
+#include "boost/program_options.hpp"
+#include <DGtal/io/DrawWithDisplay3DModifier.h>
 
 #include "DGtal/io/Color.h"
 #include "DGtal/io/colormaps/GradientColorMap.h"
@@ -28,118 +30,60 @@ using std::cout;
 using std::endl;
 using std::string;
 using namespace DGtal;
+namespace po = boost::program_options;
+typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
 
-// Print if wrong args
-void usage(bool help) {
-    cout << endl;
-    cout << "-- Usage" << endl;
-    cout << "   ./rotation2D <file> <angle> <method> [<minThresh> <maxThresh>]" << endl;
-    cout << "   method: nn (nearest neighbor), bli (bilinear), bic (bicubic), all " << endl;
-
-    if (help) {
-        cout << endl;
-        cout << "-- Help" << endl;
-        cout << "   Threshold values are needed if the image is not binary" << endl;
-        cout << "   example: ./rotation2D ../samples/contourS.pgm 2.5 all 1 135" << endl;
-        cout << "   (if binary): ./rotation2D ../samples/sw.pgm 2.5 all" << endl;
-    } else
-        cout << " - ./rotation2D help for more" << endl;
-
-    cout << endl;
-}
-
-template<typename Image>
-void randomSeeds(Image &image, const unsigned int nb, const int value)
-{
-    typename Image::Point p, low = image.domain().lowerBound();
-    typename Image::Vector ext;
-    srand ( time(NULL) );
-
-    ext = image.extent();
-
-    for (unsigned int k = 0 ; k < nb; k++)
-    {
-        for (unsigned int dim = 0; dim < Image::dimension; dim++)
-            p[dim] = rand() % (ext[dim]) +  low[dim];
-
-        image.setValue(p, value);
-    }
-}
 
 int main(int argc, char **argv) {
-    std::string inputFilename = "../samples/Al.100.vol";
-
     QApplication application(argc,argv);
-    Viewer3D<> viewer;
-    viewer.setWindowTitle("simpleViewer");
 
+    string inputFilename = "../samples/Al.100.vol";
+
+
+    Image image = VolReader<Image>::importVol(inputFilename);
+    Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
+
+    Z3i::K3 ks;
+    ks.init(image.domain().lowerBound(), image.domain().upperBound(), true);
+    Viewer3D<Z3i::Space, Z3i::K3> viewer(ks);
+    viewer.setCameraPosition(0, -800, 0);
     viewer.show();
 
-    //Default image selector = STLVector
-    typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
-    Image image = VolReader<Image>::importVol( inputFilename );
-    Z3i::Domain domain = image.domain();
+    int thresholdMin = 30;
+    int thresholdMax = 255;
 
-
-    Image imageSeeds ( domain);
-    for ( Image::Iterator it = imageSeeds.begin(), itend = imageSeeds.end();it != itend; ++it)
-        (*it)=1;
-    Z3i::Point p0(10,10,10);
-    //imageSeeds.setValue(p0, 0 );
-    randomSeeds(imageSeeds, 70, 0);
-
-
-    //Distance transformation computation
-    typedef functors::SimpleThresholdForegroundPredicate<Image> Predicate;
-    Predicate aPredicate(imageSeeds,0);
-
-    typedef  DistanceTransformation<Z3i::Space,Predicate, Z3i::L2Metric> DTL2;
-    DTL2 dtL2(&domain, &aPredicate, &Z3i::l2Metric);
-
-    unsigned int min = 0;
-    unsigned int max = 0;
-    for(DTL2::ConstRange::ConstIterator it = dtL2.constRange().begin(),
-                itend=dtL2.constRange().end();
-        it!=itend;
-        ++it)
-    {
-        if(  (*it) < min )
-            min=(*it);
-        if( (*it) > max )
-            max=(*it);
-    }
-
-
-    GradientColorMap<long> gradient( 0,30);
-    gradient.addColor(Color::Red);
-    gradient.addColor(Color::Yellow);
-    gradient.addColor(Color::Green);
-    gradient.addColor(Color::Cyan);
+    GradientColorMap<long> gradient( thresholdMin, thresholdMax);
     gradient.addColor(Color::Blue);
-    gradient.addColor(Color::Magenta);
+    gradient.addColor(Color::Green);
+    gradient.addColor(Color::Yellow);
     gradient.addColor(Color::Red);
 
-
-    viewer << SetMode3D( (*(domain.begin())).className(), "Paving" );
-
-    for(Z3i::Domain::ConstIterator it = domain.begin(), itend=domain.end();
-        it!=itend;
-        ++it){
-
-        double valDist= dtL2( (*it) );
-        Color c= gradient(valDist);
-
-        if(dtL2(*it)<=30 && image(*it)>0){
-            viewer << CustomColors3D(Color((float)(c.red()),
-                                           (float)(c.green()),
-                                           (float)(c.blue(),205)),
-                                     Color((float)(c.red()),
-                                           (float)(c.green()),
-                                           (float)(c.blue()),205));
-            viewer << *it ;
+    for(Z3i::Domain::ConstIterator it = domain.begin(), itend=domain.end(); it!=itend; ++it){
+        unsigned char  val= image( (*it) );
+        Color c= gradient(val);
+        if(val<=thresholdMax && val >=thresholdMin){
+            viewer <<  CustomColors3D(DGtal::Color(255,0,0), DGtal::Color(255,0,0));
+            viewer << *it;
         }
     }
-    viewer<< Viewer3D<>::updateDisplay;
+
+    int nbNul = 0;
+    int tot = 0;
+    for (auto p : image.constRange())
+    {
+        if(int(p) != 0)
+        {
+            // cout << int(p) << endl;
+        }
+        else
+            nbNul++;
+        tot++;
+    }
+    cout << "Nb zero: " << nbNul << endl;
+    cout << "Nb non null: " << tot - nbNul << endl;
+
+    viewer.setAutoFillBackground(true);
+    viewer << Viewer3D<>::updateDisplay;
 
     return application.exec();
 }
