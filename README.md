@@ -25,8 +25,46 @@ The backward rotation is then applied to each point of the destination image. Th
 The negative value of the rotated image correspond to the foreground. The rest is considered the background. The resulting binary image is then saved.
 
 ### Compile and run
-From the root directory of the program: 
+##### Installation of DGtal and additional libraries
+Concerning  the 2D part of the project, no particular install option is required. 
+For the 3D part, the following libraries are needed :
+
+ - OpenGL
+ - QT4
+ - QGLViewer for QT4
+
+Additionally, it is necessary to modify the installation of DGtal. If DGtal was already installed prior to using this program, a clean uninstall might necessary. 
+In the `make/`directory of DGtal, for the  `FindQGLVIEWER.cmake` file :
+
+- locate the `find_library(QGLVIEWER_LIBRARY_RELEASE ...... )` line
+- add `QGLViewer-qt4` to the list of `NAMES` :
+<pre><code>
+find_library(QGLVIEWER_LIBRARY_RELEASE   
+  NAMES qglviewer-qt4 qglviewer QGLViewer QGLViewer2 <b>QGLViewer-qt4</b>
+  PATHS 
+  /usr/lib
+  /usr/local/lib
+  /Library/Frameworks/
+  ENV QGLVIEWERROOT
+  ENV LD_LIBRARY_PATH
+  ENV LIBRARY_PATH
+  PATH_SUFFIXES QGLViewer QGLViewer/release
+  )
+</code></pre>
+DGtal must then be compiled with QGLViewer. To do so, create the makefile with the following command:
+`cmake .. -DWITH_QGLVIEWER=true`
+It is also possible to turn the option on graphically using ccmake.
+The installation is done the usual way:
 ```
+make
+sudo make install
+```
+The 3D part of the program is now runnable.
+
+##### Compilation steps 
+
+From the root directory of the program: 
+```bash
 cd rotation2D
 mkdir build
 cd build
@@ -40,6 +78,7 @@ Lower and upper thresholding values are necessary in the case of a non binary im
 The input image must be of .pgm format. 
 
 
+
 ##### Example :
 
  ```./rotation2D ../samples/contourS.pgm 1. all 1 135```
@@ -50,3 +89,7 @@ The program will store the output files in `output/` file in the `rotation2D/` d
 
 The `pre_processing/` folder allows to visualise the steps necessary to the preparation of the data for interpolation.
 The `rotation_NN/`, `rotation_BIL/` and `rotation_BIC/` folders contain respectively the results of the rotation using nearest neighbor interpolation, bilinear interpolation and bicubic interpolation, in the .pgm and .eps formats.
+
+
+
+
