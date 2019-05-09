@@ -5,11 +5,15 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+set(OpenGL_GL_PREFERENCE "GLVND")
 
 find_package(OpenGL REQUIRED)
-find_package(Qt5 COMPONENTS Core Gui OpenGL Xml Widgets REQUIRED)
+find_package(Qt4 REQUIRED)
 FIND_PACKAGE(DGtal REQUIRED 0.9.1)
-set(QT_USE_QTOPENGL TRUE)
+
+SET(QT_USE_QTOPENGL TRUE)
+INCLUDE(${QT_USE_FILE})
+INCLUDE_DIRECTORIES(${QT_INCLUDES})
 
 find_path(QGLVIEWER_INCLUDE_DIR qglviewer.h
     /usr/include/QGLViewer
@@ -20,7 +24,7 @@ find_path(QGLVIEWER_INCLUDE_DIR qglviewer.h
 )
 
 find_library(QGLVIEWER_LIBRARY_RELEASE
-  NAMES qglviewer QGLViewer qglviewer-qt5 QGLViewer-qt5
+  NAMES qglviewer QGLViewer qglviewer-qt4 QGLViewer-qt4
   PATHS /usr/lib
         /usr/local/lib
         /opt/local/lib
@@ -32,7 +36,7 @@ find_library(QGLVIEWER_LIBRARY_RELEASE
 )
 
 find_library(QGLVIEWER_LIBRARY_DEBUG
-  NAMES dqglviewer dQGLViewer dqglviewer-qt5 dQGLViewer-qt5 QGLViewerd2
+  NAMES dqglviewer dQGLViewer dqglviewer-qt4 dQGLViewer-qt4 QGLViewerd2
   PATHS /usr/lib
         /usr/local/lib
         /opt/local/lib
@@ -56,9 +60,16 @@ find_package_handle_standard_args(QGLVIEWER DEFAULT_MSG QGLVIEWER_INCLUDE_DIR QG
 
 ADD_DEFINITIONS(${QT_DEFINITIONS})
 include_directories(${DGTAL_INCLUDE_DIRS})
-include_directories(${QT_QTOPENGL_INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
+include_directories(${QT_QTOPENGL_INCLUDE_DIR} ${OPENGL_INCLUDE})
 LINK_DIRECTORIES(${DGTAL_LIBRARY_DIRS})
 
 set(SOURCE_FILES src/main.cpp)
 add_executable(rotation3D ${SOURCE_FILES})
-TARGET_LINK_LIBRARIES(rotation3D ${DGTAL_LIBRARIES} Qt5::OpenGL ${OpenGL_LIBRARIES}  Qt5::Gui Qt5::Xml)
+TARGET_LINK_LIBRARIES(rotation3D ${DGTAL_LIBRARIES} 
+ 		      ${QGLVIEWER_LIBRARY} 
+ 		      ${QT_QTXML_LIBRARY} 
+   		      ${QT_QTOPENGL_LIBRARY} 
+                      ${QT_QTGUI_LIBRARY} 
+                      ${QT_QTCORE_LIBRARY} 
+                      ${OPENGL_gl_LIBRARY} 
+                      ${OPENGL_glu_LIBRARY})
