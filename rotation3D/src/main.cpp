@@ -30,6 +30,7 @@ using std::cout;
 using std::endl;
 using std::string;
 using namespace DGtal;
+using namespace DGtal::Z3i;
 namespace po = boost::program_options;
 typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
 
@@ -37,17 +38,12 @@ typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
 int main(int argc, char **argv) {
     QApplication application(argc,argv);
 
-    string inputFilename = "../samples/Al.100.vol";
-
+    string inputFilename = "../samples/cat10.vol";
 
     Image image = VolReader<Image>::importVol(inputFilename);
     Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
-
-    Z3i::K3 ks;
-    ks.init(image.domain().lowerBound(), image.domain().upperBound(), true);
-    Viewer3D<Z3i::Space, Z3i::K3> viewer(ks);
+    Viewer3D<> viewer;
     viewer.setCameraPosition(0, -800, 0);
-    viewer.show();
 
     int thresholdMin = 30;
     int thresholdMax = 255;
@@ -57,33 +53,20 @@ int main(int argc, char **argv) {
     gradient.addColor(Color::Green);
     gradient.addColor(Color::Yellow);
     gradient.addColor(Color::Red);
+    float transp = 255.;
 
-    for(Z3i::Domain::ConstIterator it = domain.begin(), itend=domain.end(); it!=itend; ++it){
+    for(Domain::ConstIterator it = domain.begin(), itend=domain.end(); it!=itend; ++it){
         unsigned char  val= image( (*it) );
         Color c= gradient(val);
         if(val<=thresholdMax && val >=thresholdMin){
-            viewer <<  CustomColors3D(DGtal::Color(255,0,0), DGtal::Color(255,0,0));
+            viewer <<  CustomColors3D(Color((float)(c.red()), (float)(c.green()),(float)(c.blue()), transp),
+                                      Color((float)(c.red()), (float)(c.green()),(float)(c.blue()), transp));
             viewer << *it;
         }
     }
 
-    int nbNul = 0;
-    int tot = 0;
-    for (auto p : image.constRange())
-    {
-        if(int(p) != 0)
-        {
-            // cout << int(p) << endl;
-        }
-        else
-            nbNul++;
-        tot++;
-    }
-    cout << "Nb zero: " << nbNul << endl;
-    cout << "Nb non null: " << tot - nbNul << endl;
-
-    viewer.setAutoFillBackground(true);
     viewer << Viewer3D<>::updateDisplay;
+    viewer.show();
 
     return application.exec();
 }
