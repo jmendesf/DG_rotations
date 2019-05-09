@@ -34,7 +34,7 @@ For the 3D part, the following libraries are needed :
  - QGLViewer for QT4
 
 Additionally, it is necessary to modify the installation of DGtal. If DGtal was already installed prior to using this program, a clean uninstall might necessary. 
-In the `make/`directory of DGtal, for the  `FindQGLVIEWER.cmake` file :
+In the `cmake/`directory of DGtal, and for the  `FindQGLVIEWER.cmake` file :
 
 - locate the `find_library(QGLVIEWER_LIBRARY_RELEASE ...... )` line
 - add `QGLViewer-qt4` to the list of `NAMES` :
