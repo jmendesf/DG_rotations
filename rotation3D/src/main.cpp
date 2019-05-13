@@ -37,20 +37,8 @@ typedef ImageSelector<Z3i::Domain, float>::Type Image;
 typedef functors::SimpleThresholdForegroundPredicate<Image> Predicate;
 typedef DistanceTransformation<Z3i::Space, Predicate, Z3i::L2Metric> DTL2;
 
-int main(int argc, char **argv) {
-    QApplication application(argc, argv);
-    string inputFilename = "../samples/lobster.vol";
-
-    Image image = VolReader<Image>::importVol(inputFilename);
-    Image GSim = image;
-    Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
-    Viewer3D<> viewer;
-
-    Predicate aPredicate(GSim, 0);
-    DTL2 dtL2(&domain, &aPredicate, &Z3i::l2Metric);
-
-    float min = 0;
-    float max = 0;
+void findExtrema(DTL2 dtL2, float& min, float& max)
+{
     for(DTL2::ConstRange::ConstIterator it = dtL2.constRange().begin(),
                 itend=dtL2.constRange().end();
         it!=itend;
@@ -61,9 +49,47 @@ int main(int argc, char **argv) {
         if( (*it) > max )
             max=(*it);
     }
+}
 
-    cout << "Min Value: " << min << endl;
-    cout << "Max Value: " << max << endl;
+void inverseImage(Image src, Image& dst) {
+    for (int z = src.domain().lowerBound()[2]; z <= src.domain().upperBound()[2]; z++)
+        for (int y = src.domain().lowerBound()[1]; y <= src.domain().upperBound()[1]; y++)
+            for (int x = src.domain().lowerBound()[0]; x <= src.domain().upperBound()[0]; x++)
+                dst.setValue({x, y, z}, 255 - src.operator()({x, y, z}));
+}
+
+void thresholdImage(Image src, Image& dst)
+{
+    for(Z3i::Domain::ConstIterator it = src.domain().begin(), itend=src.domain().end();
+        it!=itend;
+        ++it)
+    {
+        dst.setValue(*it, src(*it) > 0 ? 255 : 0);
+    }
+
+}
+
+int main(int argc, char **argv) {
+    QApplication application(argc, argv);
+    string inputFilename = "../samples/cat10.vol";
+
+    Image image = VolReader<Image>::importVol(inputFilename);
+    Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
+
+    Image thresholdedIm(domain);
+    thresholdImage(image, thresholdedIm);
+
+    Image inverse(domain);
+    inverseImage(thresholdedIm, inverse);
+
+    Viewer3D<> viewer;
+
+    Predicate aPredicate(thresholdedIm, 0);
+    DTL2 dtL2(&domain, &aPredicate, &Z3i::l2Metric);
+
+    float min = 0;
+    float max = 0;
+    findExtrema(dtL2, min, max);
 
     GradientColorMap<long> gradient( 0,30);
     gradient.addColor(Color::Red);
@@ -80,10 +106,12 @@ int main(int argc, char **argv) {
         it!=itend;
         ++it){
 
-        double valDist= dtL2( (*it) );
+        double valDist= inverse( (*it) );
+        cout << valDist << endl;
         Color c= gradient(valDist);
-        transp *= valDist;
-        if(dtL2(*it)<=30 && image(*it)>0){
+
+        if(valDist > 0)
+        {
             viewer << CustomColors3D(Color((float)(c.red()),
                                            (float)(c.green()),
                                            (float)(c.blue(),transp)),
@@ -92,7 +120,20 @@ int main(int argc, char **argv) {
                                            (float)(c.blue()),transp));
             viewer << *it ;
         }
-        transp = 30.;
+
+        // transp *= valDist;
+        /*
+        if(dtL2(*it)<=30 && image(*it)>0){
+            viewer << CustomColors3D(Color((float)(c.red()),
+                                           (float)(c.green()),
+                                           (float)(c.blue(),transp)),
+                                     Color((float)(c.red()),
+                                           (float)(c.green()),
+                                           (float)(c.blue()),transp));
+            viewer << *it ;
+        }*/
+
+        // transp = 30.;
     }
 
     viewer << Viewer3D<>::updateDisplay;
