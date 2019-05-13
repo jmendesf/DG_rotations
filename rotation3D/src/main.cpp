@@ -32,37 +32,67 @@ using std::string;
 using namespace DGtal;
 using namespace DGtal::Z3i;
 namespace po = boost::program_options;
-typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
 
+typedef ImageSelector<Z3i::Domain, float>::Type Image;
+typedef functors::SimpleThresholdForegroundPredicate<Image> Predicate;
+typedef DistanceTransformation<Z3i::Space, Predicate, Z3i::L2Metric> DTL2;
 
 int main(int argc, char **argv) {
-    QApplication application(argc,argv);
-
-    string inputFilename = "../samples/cat10.vol";
+    QApplication application(argc, argv);
+    string inputFilename = "../samples/lobster.vol";
 
     Image image = VolReader<Image>::importVol(inputFilename);
+    Image GSim = image;
     Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
     Viewer3D<> viewer;
-    viewer.setCameraPosition(0, -800, 0);
 
-    int thresholdMin = 30;
-    int thresholdMax = 255;
+    Predicate aPredicate(GSim, 0);
+    DTL2 dtL2(&domain, &aPredicate, &Z3i::l2Metric);
 
-    GradientColorMap<long> gradient( thresholdMin, thresholdMax);
-    gradient.addColor(Color::Blue);
-    gradient.addColor(Color::Green);
-    gradient.addColor(Color::Yellow);
+    float min = 0;
+    float max = 0;
+    for(DTL2::ConstRange::ConstIterator it = dtL2.constRange().begin(),
+                itend=dtL2.constRange().end();
+        it!=itend;
+        ++it)
+    {
+        if(  (*it) < min )
+            min=(*it);
+        if( (*it) > max )
+            max=(*it);
+    }
+
+    cout << "Min Value: " << min << endl;
+    cout << "Max Value: " << max << endl;
+
+    GradientColorMap<long> gradient( 0,30);
     gradient.addColor(Color::Red);
-    float transp = 255.;
+    gradient.addColor(Color::Yellow);
+    gradient.addColor(Color::Green);
+    gradient.addColor(Color::Cyan);
+    gradient.addColor(Color::Blue);
+    gradient.addColor(Color::Magenta);
+    gradient.addColor(Color::Red);
+    float transp = 30.;
 
-    for(Domain::ConstIterator it = domain.begin(), itend=domain.end(); it!=itend; ++it){
-        unsigned char  val= image( (*it) );
-        Color c= gradient(val);
-        if(val<=thresholdMax && val >=thresholdMin){
-            viewer <<  CustomColors3D(Color((float)(c.red()), (float)(c.green()),(float)(c.blue()), transp),
-                                      Color((float)(c.red()), (float)(c.green()),(float)(c.blue()), transp));
-            viewer << *it;
+    viewer << SetMode3D( (*(domain.begin())).className(), "Paving");
+    for(Z3i::Domain::ConstIterator it = domain.begin(), itend=domain.end();
+        it!=itend;
+        ++it){
+
+        double valDist= dtL2( (*it) );
+        Color c= gradient(valDist);
+        transp *= valDist;
+        if(dtL2(*it)<=30 && image(*it)>0){
+            viewer << CustomColors3D(Color((float)(c.red()),
+                                           (float)(c.green()),
+                                           (float)(c.blue(),transp)),
+                                     Color((float)(c.red()),
+                                           (float)(c.green()),
+                                           (float)(c.blue()),transp));
+            viewer << *it ;
         }
+        transp = 30.;
     }
 
     viewer << Viewer3D<>::updateDisplay;
