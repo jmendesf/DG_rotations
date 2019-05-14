@@ -101,10 +101,91 @@ void addDTImages(Image im1, Image im2, Image &dst) {
         value = im1(*it) + im2(*it);
         if (value == 0.)
             value = -0.5;
-        if (value > 255)
-            value = 255;
         dst.setValue(*it, value);
     }
+}
+
+// for debugging
+void printMatrix(float matrix[3][3]) {
+    for (int i = 0; i < 3; i++) {
+        for (int y = 0; y < 3; y++)
+            cout << matrix[i][y] << " ";
+        cout << endl;
+    }
+}
+
+void computeRotationMatrix(float v1, float v2, float v3, float matrix[3][3], float angle) {
+    // Using Rodrigues' formula:
+    // R = I + sin(angle) * A + (1 - cos(angle)) * A^2
+    // With R the rotation matrix,
+    // I the identity
+    // A the matrix determined by the unit vector such that:
+    //     ( 0   -v3   v2)
+    // A = ( v3   0   -v1)
+    //     (-v2   v1   0 )
+
+    float A[3][3] = {{0,   -v3, v2},
+                     {v3,  0,   -v1},
+                     {-v2, v1,  0}};
+    float ASquared[3][3] =
+            {
+                    {
+                            A[0][0] * A[0][0] + A[0][1] * A[1][0] + A[0][2] * A[2][0],
+                            A[0][0] * A[0][1] + A[0][1] * A[1][1] + A[0][2] * A[2][1],
+                            A[0][0] * A[0][2] + A[0][1] * A[1][2] + A[0][2] * A[2][2]
+                    },
+                    {
+                            A[1][0] * A[0][0] + A[1][1] * A[1][0] + A[1][2] * A[2][0],
+                            A[1][0] * A[0][1] + A[1][1] * A[1][1] + A[1][2] * A[2][1],
+                            A[1][0] * A[0][2] + A[1][1] * A[1][2] + A[1][2] * A[2][2]
+                    },
+                    {
+                            A[2][0] * A[0][0] + A[2][1] * A[1][0] + A[2][2] * A[2][0],
+                            A[2][0] * A[0][1] + A[2][1] * A[1][1] + A[2][2] * A[2][1],
+                            A[2][0] * A[0][2] + A[2][1] * A[1][2] + A[2][2] * A[2][2]
+                    }
+            };
+    float cosCoeff = 1 - cos(angle);
+
+    for (int i = 0; i < 3; i++)
+    {
+        for (int y = 0; y < 3; y++)
+        {
+            A[i][y] *= sin(angle);
+            ASquared[i][y] *= cosCoeff;
+        }
+    }
+
+    A[0][0] += 1;
+    A[1][1] += 1;
+    A[2][2] += 1;
+
+    for(int i = 0; i < 3; i++)
+    {
+        for(int y = 0; y < 3; y++)
+        {
+            matrix[i][y] = A[i][y] + ASquared[i][y];
+        }
+    }
+}
+
+
+void rotateBackward(Image image, Image &dst, float angle, float v1, float v2, float v3) {
+    int maxX = image.domain().upperBound()[0];
+    int maxY = image.domain().upperBound()[1];
+    int maxZ = image.domain().upperBound()[2];
+    int minX = image.domain().lowerBound()[0];
+    int minY = image.domain().lowerBound()[1];
+    int minZ = image.domain().lowerBound()[2];
+
+    PointVector<3, int> center((maxX - minX) / 2,
+                               (maxY - minY) / 2,
+                               (maxZ - minZ) / 2);
+
+    float matrix[3][3];
+    cout << "-- Computing Rodrigues' rotation matrix ";
+    computeRotationMatrix(v1, v2, v3, matrix, angle);
+    cout << "-done." << endl;
 }
 
 int main(int argc, char **argv) {
@@ -130,7 +211,6 @@ int main(int argc, char **argv) {
          << vecRotation[1] << ","
          << vecRotation[2] << ")."
          << endl;
-
 
     Image image = VolReader<Image>::importVol(inputFilename);
     Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
@@ -189,8 +269,7 @@ int main(int argc, char **argv) {
 
     viewer << SetMode3D((*(domain.begin())).className(), "Paving");
 
-    if(strcmp(argv[5], "dt") == 0)
-    {
+    if (strcmp(argv[5], "dt") == 0) {
         for (Z3i::Domain::ConstIterator it = domain.begin(), itend = domain.end();
              it != itend;
              ++it) {
@@ -209,8 +288,7 @@ int main(int argc, char **argv) {
                 viewer << *it;
             }
         }
-    } else if(strcmp(argv[5], "shape") == 0)
-    {
+    } else if (strcmp(argv[5], "shape") == 0) {
         for (Z3i::Domain::ConstIterator it = domain.begin(), itend = domain.end();
              it != itend;
              ++it) {
@@ -227,15 +305,12 @@ int main(int argc, char **argv) {
                 viewer << *it;
             }
         }
-    }
-
-    else
-    {
+    } else {
         cout << "Unknown argument " << argv[5] << ". Exiting." << endl;
         return 0;
     }
 
-
+    rotateBackward(image, image, angle, vecRotation[0], vecRotation[1], vecRotation[2]);
 
     viewer << Viewer3D<>::updateDisplay;
     viewer.show();
