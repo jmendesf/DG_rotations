@@ -218,12 +218,6 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3)
     computeRotationMatrix(v1, v2, v3, matrixBackward, -angle);
     cout << " - done." << endl;
 
-    cout << endl;
-    printMatrix(matrixForward);
-    cout << endl;
-    printMatrix(matrixBackward);
-    cout << endl;
-
     cout << "-- Determining rotated domain boundaries by forward rotation ";
     PointVector<3, double> p000 = computeRotation({minX, minY, minZ}, matrixForward);
     PointVector<3, double> p100 = computeRotation({maxX, minY, minZ}, matrixForward);
@@ -240,15 +234,10 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3)
     minXR = min(min(min(p000[0], p100[0]), min(p010[0], p110[0])), min(min(p001[0], p101[0]), min(p111[0], p011[0])));
     minYR = min(min(min(p000[1], p100[1]), min(p010[1], p110[1])), min(min(p001[1], p101[1]), min(p111[1], p011[1])));
     minZR = min(min(min(p000[2], p100[2]), min(p010[2], p110[2])), min(min(p001[2], p101[2]), min(p111[2], p011[2])));
-    cout << minX << " " << minY << " " << minZ << endl;
-    cout << minXR << ", "<< minYR << ", " << minZR << endl;
 
     maxXR = max(max(max(p000[0], p100[0]), max(p010[0], p110[0])), max(max(p001[0], p101[0]), max(p111[0], p011[0])));
     maxYR = max(max(max(p000[1], p100[1]), max(p010[1], p110[1])), max(max(p001[1], p101[1]), max(p111[1], p011[1])));
     maxZR = max(max(max(p000[2], p100[2]), max(p010[2], p110[2])), max(max(p001[2], p101[2]), max(p111[2], p011[2])));
-
-    cout << maxX << " " << maxY << " " << maxZ << endl;
-    cout << maxXR << ", "<< maxYR << ", " << maxZR << endl;
 
     PointVector<3, int> lowerBound = {minXR, minYR, minZR};
     PointVector<3, int> upperBound = {maxXR, maxYR, maxZR};
@@ -256,7 +245,7 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3)
     Image imRot(newDomain);
     cout << "- done." << endl;
 
-    cout << "-- Computing rotation " << endl;
+    cout << "-- Computing rotation ";
     for (int z = newDomain.lowerBound()[2]; z <= newDomain.upperBound()[2]; ++z) {
         for (int y = newDomain.lowerBound()[1]; y <= newDomain.upperBound()[1]; ++y) {
             for (int x = newDomain.lowerBound()[0]; x <= newDomain.upperBound()[0]; ++x) {
@@ -281,6 +270,7 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3)
             }
         }
     }
+    cout << "- done." << endl;
     return imRot;
 }
 
@@ -332,12 +322,12 @@ int main(int argc, char **argv) {
     Viewer3D<> viewer;
 
     cout << "-- Computing distance transforms " << endl;
-    cout << "     - foreground ";
+    cout << "     - Foreground ";
     Predicate pIm(thresholdedIm, 0);
     DTL2 dtL2(&domain, &pIm, &Z3i::l2Metric);
     cout << "- done" << endl;
 
-    cout << "     - background ";
+    cout << "     - Background ";
     Predicate pInv(inverse, 0);
     DTL2 dtL2Inv(&domain, &pInv, &Z3i::l2Metric);
     cout << "- done." << endl;
@@ -352,7 +342,7 @@ int main(int argc, char **argv) {
     DTToImage(dtL2Inv, maxInv, dtL2ImInv);
     cout << "- done." << endl;
 
-    cout << "-- processing image DT ";
+    cout << "-- Processing image DT ";
     processDT(dtL2Im, true);
     processDT(dtL2ImInv, false);
     cout << "- done." << endl;
@@ -436,5 +426,7 @@ int main(int argc, char **argv) {
     viewer << Viewer3D<>::updateDisplay;
     viewer.show();
 
-    return application.exec();
+    cout << "-- Visualising with option " << argv[5] << "." << endl;
+    int appRet = application.exec();
+    return appRet;
 }
