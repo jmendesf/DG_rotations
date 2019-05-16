@@ -21,6 +21,7 @@
 #include "DGtal/helpers/StdDefs.h"
 
 #include "DGtal/helpers/StdDefs.h"
+#include <DGtal/io/writers/VolWriter.h>
 
 // #include "../include/tools.h"
 // #include "../include/images.h"
@@ -35,7 +36,7 @@ using namespace DGtal;
 using namespace DGtal::Z3i;
 namespace po = boost::program_options;
 
-typedef ImageSelector<Z3i::Domain, float>::Type Image;
+typedef ImageSelector<Z3i::Domain, double>::Type Image;
 typedef functors::SimpleThresholdForegroundPredicate<Image> Predicate;
 typedef DistanceTransformation<Z3i::Space, Predicate, Z3i::L2Metric> DTL2;
 
@@ -282,6 +283,17 @@ void thresholdDTImage(Image src, Image &dst) {
     }
 }
 
+void initGrad(GradientColorMap<long>& gradient)
+{
+    gradient.addColor(Color::Red);
+    gradient.addColor(Color::Yellow);
+    gradient.addColor(Color::Green);
+    gradient.addColor(Color::Cyan);
+    gradient.addColor(Color::Blue);
+    gradient.addColor(Color::Magenta);
+    gradient.addColor(Color::Red);
+}
+
 int main(int argc, char **argv) {
     float vecRotation[3];
     float angle;
@@ -356,13 +368,7 @@ int main(int argc, char **argv) {
     thresholdDTImage(imRot, threshImRot);
 
     GradientColorMap<long> gradient(0, 255);
-    gradient.addColor(Color::Red);
-    gradient.addColor(Color::Yellow);
-    gradient.addColor(Color::Green);
-    gradient.addColor(Color::Cyan);
-    gradient.addColor(Color::Blue);
-    gradient.addColor(Color::Magenta);
-    gradient.addColor(Color::Red);
+    initGrad(gradient);
     float transp = 20.;
 
     viewer << SetMode3D((*(domain.begin())).className(), "Paving");
@@ -420,11 +426,13 @@ int main(int argc, char **argv) {
             }
         }
     } else {
+        trace.error();
         cout << "Unknown argument " << argv[5] << ". Exiting." << endl;
         return 0;
     }
     viewer << Viewer3D<>::updateDisplay;
     viewer.show();
+    VolWriter<Image,functors::Cast<unsigned char>>::exportVol("test.vol", DTAddIm);
 
     cout << "-- Visualising with option " << argv[5] << "." << endl;
     int appRet = application.exec();
