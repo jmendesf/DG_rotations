@@ -211,9 +211,9 @@ void computeTrilinearRotation(double x, double y, double z, double &value, Image
     int y0 = floor(y);
     int z0 = floor(z);
 
-    int x1 = (x + 1) > maxX ? x0 : x + 1;
-    int y1 = (y + 1) > maxY ? y0 : y + 1;
-    int z1 = (z + 1) > maxZ ? z0 : z + 1;
+    int x1 = (x0 + 1) > maxX ? x0 : x0 + 1;
+    int y1 = (y0 + 1) > maxY ? y0 : y0 + 1;
+    int z1 = (z0 + 1) > maxZ ? z0 : z0 + 1;
 
     double xD = x - x0;
     double yD = y - y0;
@@ -306,11 +306,9 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
                     backZ = (int) round(backP[2]);
                 }
                 if (backP[0] <= minX || backP[1] <= minY || backP[2] <= minZ) {
-                    imRot.setValue({x, y, z}, 1);
                     continue;
                 }
                 if (backP[0] >= maxX || backP[1] >= maxY || backP[2] >= maxZ) {
-                    imRot.setValue({x, y, z}, 1);
                     continue;
                 }
 
@@ -332,6 +330,7 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
 Image DTToGrayscale(Image src, float min, float max) {
     if(min < 0)
         min = abs(min);
+    Image gs(src.domain());
 
     float step1 = 255 / min;
     float step2 = 255 / max;
@@ -339,8 +338,16 @@ Image DTToGrayscale(Image src, float min, float max) {
     for (Z3i::Domain::ConstIterator it = src.domain().begin(), itend = src.domain().end();
          it != itend;
          ++it) {
-        
+        if(src(*it) < 0)
+        {
+            gs.setValue(*it, src(*it) * step1);
+        } else if (src(*it) > 0)
+        {
+            gs.setValue(*it, src(*it) * step2);
+        } else
+            gs.setValue(*it, 0);
     }
+    return gs;
 }
 
 void thresholdDTImage(Image src, Image &dst) {
@@ -559,7 +566,8 @@ int main(int argc, char **argv) {
         viewer2.show();
     }
 
-    VolWriter<Image, functors::Cast<unsigned char>>::exportVol("test.vol", DTAddIm);
+    Image gsDT = DTToGrayscale(DTAddIm, -max, maxInv);
+    VolWriter<Image, functors::Cast<unsigned char>>::exportVol("test.vol", gsDT);
 
     cout << "-- Visualising with option " << argv[5] << "." << endl;
     int appRet = application.exec();
