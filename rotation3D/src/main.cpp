@@ -41,7 +41,7 @@ typedef functors::SimpleThresholdForegroundPredicate<Image> Predicate;
 typedef DistanceTransformation<Z3i::Space, Predicate, Z3i::L2Metric> DTL2;
 
 void usage() {
-    cout << "usage: ./rotation3D angle aX aY aZ visualisation" << endl;
+    cout << "usage: ./rotation3D angle aX aY aZ visualisation interp" << endl;
     cout << "visualisation: shape, dt, rot" << endl;
 }
 
@@ -103,8 +103,16 @@ void addDTImages(Image im1, Image im2, Image &dst) {
          ++it) {
         value = im1(*it) + im2(*it);
         if (value == 0.)
-            value = -0.5;
+            value = 0.5;
         dst.setValue(*it, value);
+    }
+}
+
+void mergedDTImageToCharValues(Image src, Image &dst) {
+    for (Z3i::Domain::ConstIterator it = dst.domain().begin(), itend = dst.domain().end();
+         it != itend;
+         ++it) {
+
     }
 }
 
@@ -132,8 +140,8 @@ void computeRotationMatrix(double v1, double v2, double v3, double matrix[3][3],
 
     // A matrix
     double A[3][3] = {{0,   -v3, v2},
-                     {v3,  0,   -v1},
-                     {-v2, v1,  0}};
+                      {v3,  0,   -v1},
+                      {-v2, v1,  0}};
     // A matrix squared
     double ASquared[3][3] =
             {
@@ -154,10 +162,8 @@ void computeRotationMatrix(double v1, double v2, double v3, double matrix[3][3],
                     }
             };
 
-    for(int i = 0; i < 3; ++i)
-    {
-        for(int y = 0; y < 3; ++y)
-        {
+    for (int i = 0; i < 3; ++i) {
+        for (int y = 0; y < 3; ++y) {
             ASquared[i][y] /= w;
             A[i][y] /= std::sqrt(w);
         }
@@ -196,7 +202,44 @@ PointVector<3, double> computeRotation(PointVector<3, int> p, double rotationMat
     return result;
 }
 
-Image rotateBackward(Image image, double angle, double v1, double v2, double v3) {
+void computeTrilinearRotation(double x, double y, double z, double &value, Image srcImage) {
+    int maxX = srcImage.domain().upperBound()[0];
+    int maxY = srcImage.domain().upperBound()[1];
+    int maxZ = srcImage.domain().upperBound()[2];
+
+    int x0 = floor(x);
+    int y0 = floor(y);
+    int z0 = floor(z);
+
+    int x1 = (x + 1) > maxX ? x0 : x + 1;
+    int y1 = (y + 1) > maxY ? y0 : y + 1;
+    int z1 = (z + 1) > maxZ ? z0 : z + 1;
+
+    double xD = x - x0;
+    double yD = y - y0;
+    double zD = z - z0;
+
+    double c000 = srcImage.operator()({x0, y0, z0});
+    double c001 = srcImage.operator()({x0, y0, z1});
+    double c010 = srcImage.operator()({x0, y1, z0});
+    double c011 = srcImage.operator()({x0, y1, z1});
+    double c100 = srcImage.operator()({x1, y0, z0});
+    double c101 = srcImage.operator()({x1, y0, z1});
+    double c110 = srcImage.operator()({x1, y1, z0});
+    double c111 = srcImage.operator()({x1, y1, y1});
+
+    double c00 = c000 * (1 - xD) + c100 * xD;
+    double c01 = c001 * (1 - xD) + c101 * xD;
+    double c10 = c010 * (1 - xD) + c110 * xD;
+    double c11 = c011 * (1 - xD) + c111 * xD;
+
+    double c0 = c00 * (1 - yD) + c10 * yD;
+    double c1 = c01 * (1 - yD) + c11 * yD;
+
+    value = c0 * (1 - zD) + c1 * zD;
+}
+
+Image rotateBackward(Image image, double angle, double v1, double v2, double v3, string interp) {
     int maxX = image.domain().upperBound()[0];
     int maxY = image.domain().upperBound()[1];
     int maxZ = image.domain().upperBound()[2];
@@ -246,28 +289,39 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3)
     Image imRot(newDomain);
     cout << "- done." << endl;
 
-    cout << "-- Computing rotation ";
+    double backX = 0;
+    double backY = 0;
+    double backZ = 0;
+
+    double value;
+
     for (int z = newDomain.lowerBound()[2]; z <= newDomain.upperBound()[2]; ++z) {
         for (int y = newDomain.lowerBound()[1]; y <= newDomain.upperBound()[1]; ++y) {
             for (int x = newDomain.lowerBound()[0]; x <= newDomain.upperBound()[0]; ++x) {
                 PointVector<3, double> backP = computeRotation({x, y, z}, matrixBackward);
-                int backX = round(backP[0]);
-                int backY = round(backP[1]);
-                int backZ = round(backP[2]);
 
-                if (backX <= minX || backY <= minY || backZ <= minZ)
-                {
+                if (interp.compare("nn") == 0) {
+                    backX = (int) round(backP[0]);
+                    backY = (int) round(backP[1]);
+                    backZ = (int) round(backP[2]);
+                }
+                if (backP[0] <= minX || backP[1] <= minY || backP[2] <= minZ) {
+                    imRot.setValue({x, y, z}, 1);
+                    continue;
+                }
+                if (backP[0] >= maxX || backP[1] >= maxY || backP[2] >= maxZ) {
                     imRot.setValue({x, y, z}, 1);
                     continue;
                 }
 
-                if (backX >= maxX || backY >= maxY || backZ >= maxZ)
-                {
-                    imRot.setValue({x, y, z}, 1);
-                    continue;
+                if (interp.compare("tril") == 0) {
+                    computeTrilinearRotation(backP[0], backP[1], backP[2], value, image);
                 }
 
-                imRot.setValue({x, y, z}, image.operator()({backX, backY, backZ}));
+                if (interp.compare("nn") == 0)
+                    value = image.operator()({(int) backX, (int) backY, (int) backZ});
+
+                imRot.setValue({x, y, z}, value);
             }
         }
     }
@@ -275,16 +329,29 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3)
     return imRot;
 }
 
+Image DTToGrayscale(Image src, float min, float max) {
+    if(min < 0)
+        min = abs(min);
+
+    float step1 = 255 / min;
+    float step2 = 255 / max;
+
+    for (Z3i::Domain::ConstIterator it = src.domain().begin(), itend = src.domain().end();
+         it != itend;
+         ++it) {
+        
+    }
+}
+
 void thresholdDTImage(Image src, Image &dst) {
     for (Z3i::Domain::ConstIterator it = src.domain().begin(), itend = src.domain().end();
          it != itend;
          ++it) {
-        dst.setValue(*it, src(*it) > 0 ? 0 : 255);
+        dst.setValue(*it, src(*it) >= 0 ? 0 : 255);
     }
 }
 
-void initGrad(GradientColorMap<long>& gradient)
-{
+void initGrad(GradientColorMap<double> &gradient) {
     gradient.addColor(Color::Red);
     gradient.addColor(Color::Yellow);
     gradient.addColor(Color::Green);
@@ -297,9 +364,11 @@ void initGrad(GradientColorMap<long>& gradient)
 int main(int argc, char **argv) {
     float vecRotation[3];
     float angle;
+    string interp;
 
-    if (argc == 6) {
+    if (argc == 7) {
         angle = stod(argv[1]);
+        interp = argv[6];
         vecRotation[0] = stod(argv[2]);
         vecRotation[1] = stod(argv[3]);
         vecRotation[2] = stod(argv[4]);
@@ -308,6 +377,13 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    if ((interp.compare("all") != 0) &&
+        interp.compare("nn") != 0 &&
+        interp.compare("tril") != 0) {
+        trace.error();
+        cout << "invalid interpolation argument: " << interp << endl;
+        return 0;
+    }
 
     QApplication application(argc, argv);
     string inputFilename = "../samples/cat10.vol";
@@ -317,6 +393,8 @@ int main(int argc, char **argv) {
          << vecRotation[1] << ","
          << vecRotation[2] << ")."
          << endl;
+
+    cout << "- Interpolation method chosen: " << interp << "." << endl;
 
     Image image = VolReader<Image>::importVol(inputFilename);
     Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
@@ -331,7 +409,10 @@ int main(int argc, char **argv) {
     inverseImage(thresholdedIm, inverse);
     cout << "- done." << endl;
 
-    Viewer3D<> viewer;
+    Viewer3D<> viewer1;
+    Viewer3D<> viewer2;
+    viewer1.setWindowTitle("NN");
+    viewer2.setWindowTitle("Trilinear");
 
     cout << "-- Computing distance transforms " << endl;
     cout << "     - Foreground ";
@@ -363,32 +444,43 @@ int main(int argc, char **argv) {
     addDTImages(dtL2Im, dtL2ImInv, DTAddIm);
     cout << "- done." << endl;
 
-    Image imRot = rotateBackward(DTAddIm, angle, vecRotation[0], vecRotation[1], vecRotation[2]);
-    Image threshImRot(imRot.domain());
-    thresholdDTImage(imRot, threshImRot);
 
-    GradientColorMap<long> gradient(0, 255);
+    Image imRotNN = DTAddIm;
+    Image imRotTril = DTAddIm;
+
+    if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
+        cout << "-- Computing rotation using nearest neighbor interpolation" << endl;
+        imRotNN = rotateBackward(DTAddIm, angle, vecRotation[0], vecRotation[1], vecRotation[2], "nn");
+    }
+    if (interp.compare("all") == 0 || interp.compare("tril") == 0) {
+        cout << "-- Computing rotation using trilinear interpolation" << endl;
+        imRotTril = rotateBackward(DTAddIm, angle, vecRotation[0], vecRotation[1], vecRotation[2], "tril");
+    }
+
+    GradientColorMap<double> gradient(0, 255);
     initGrad(gradient);
     float transp = 20.;
 
-    viewer << SetMode3D((*(domain.begin())).className(), "Paving");
+    int i = 0;
+    cout << "-- Populating viewers" << endl;
+    viewer1 << SetMode3D((*(domain.begin())).className(), "Paving");
     if (strcmp(argv[5], "dt") == 0) {
         for (Z3i::Domain::ConstIterator it = domain.begin(), itend = domain.end();
              it != itend;
              ++it) {
 
-            double valDist = imRot((*it));
+            double valDist = imRotNN((*it));
             if (valDist > -max) {
                 if (valDist < 0)
                     valDist = maxInv - abs(valDist);
                 Color c = gradient(valDist);
-                viewer << CustomColors3D(Color((float) (c.red()),
-                                               (float) (c.green()),
-                                               (float) (c.blue(), transp)),
-                                         Color((float) (c.red()),
-                                               (float) (c.green()),
-                                               (float) (c.blue()), transp));
-                viewer << *it;
+                viewer1 << CustomColors3D(Color((float) (c.red()),
+                                                (float) (c.green()),
+                                                (float) (c.blue(), transp)),
+                                          Color((float) (c.red()),
+                                                (float) (c.green()),
+                                                (float) (c.blue()), transp));
+                viewer1 << *it;
             }
         }
     } else if (strcmp(argv[5], "shape") == 0) {
@@ -399,40 +491,75 @@ int main(int argc, char **argv) {
             double valDist = image((*it));
             if (valDist > 0) {
                 Color c = gradient(valDist);
-                viewer << CustomColors3D(Color((float) (c.red()),
-                                               (float) (c.green()),
-                                               (float) (c.blue(), 255)),
-                                         Color((float) (c.red()),
-                                               (float) (c.green()),
-                                               (float) (c.blue()), 255));
-                viewer << *it;
+                viewer1 << CustomColors3D(Color((float) (c.red()),
+                                                (float) (c.green()),
+                                                (float) (c.blue(), 255)),
+                                          Color((float) (c.red()),
+                                                (float) (c.green()),
+                                                (float) (c.blue()), 255));
+                viewer1 << *it;
             }
         }
     } else if (strcmp(argv[5], "rot") == 0) {
-        for (Z3i::Domain::ConstIterator it = imRot.domain().begin(), itend = imRot.domain().end();
-             it != itend;
-             ++it) {
+        Image threshImRotNN(imRotNN.domain());
+        Image threshImRotTril(imRotTril.domain());
+        thresholdDTImage(imRotNN, threshImRotNN);
+        thresholdDTImage(imRotTril, threshImRotTril);
 
-            double valDist = threshImRot((*it));
-            if (valDist > 254) {
-                Color c = gradient(valDist);
-                viewer << CustomColors3D(Color((float) (c.red()),
-                                               (float) (c.green()),
-                                               (float) (c.blue(), 255)),
-                                         Color((float) (c.red()),
-                                               (float) (c.green()),
-                                               (float) (c.blue()), 255));
-                viewer << *it;
+        if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
+            for (Z3i::Domain::ConstIterator it = imRotNN.domain().begin(), itend = imRotNN.domain().end();
+                 it != itend;
+                 ++it) {
+                double valDist = threshImRotNN((*it));
+
+                if (valDist > 254) {
+                    Color c = gradient(valDist);
+                    viewer1 << CustomColors3D(Color((float) (c.red()),
+                                                    (float) (c.green()),
+                                                    (float) (c.blue(), 255)),
+                                              Color((float) (c.red()),
+                                                    (float) (c.green()),
+                                                    (float) (c.blue()), 255));
+                    viewer1 << *it;
+                }
             }
         }
+
+        if (interp.compare("all") == 0 || interp.compare("tril") == 0) {
+            for (Z3i::Domain::ConstIterator it = imRotNN.domain().begin(), itend = imRotNN.domain().end();
+                 it != itend;
+                 ++it) {
+                double valDist = threshImRotTril((*it));
+                if (valDist > 254) {
+                    Color c = gradient(valDist);
+                    viewer2 << CustomColors3D(Color((float) (c.red()),
+                                                    (float) (c.green()),
+                                                    (float) (c.blue(), 255)),
+                                              Color((float) (c.red()),
+                                                    (float) (c.green()),
+                                                    (float) (c.blue()), 255));
+                    viewer2 << *it;
+                }
+            }
+        }
+
     } else {
         trace.error();
         cout << "Unknown argument " << argv[5] << ". Exiting." << endl;
         return 0;
     }
-    viewer << Viewer3D<>::updateDisplay;
-    viewer.show();
-    VolWriter<Image,functors::Cast<unsigned char>>::exportVol("test.vol", DTAddIm);
+
+    if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
+        viewer1 << Viewer3D<>::updateDisplay;
+        viewer1.show();
+    }
+
+    if (interp.compare("tril") == 0) {
+        viewer2 << Viewer3D<>::updateDisplay;
+        viewer2.show();
+    }
+
+    VolWriter<Image, functors::Cast<unsigned char>>::exportVol("test.vol", DTAddIm);
 
     cout << "-- Visualising with option " << argv[5] << "." << endl;
     int appRet = application.exec();
