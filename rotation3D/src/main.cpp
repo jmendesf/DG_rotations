@@ -218,7 +218,7 @@ void computeTrilinearRotation(double x, double y, double z, double &value, Image
     double c100 = srcImage.operator()({x1, y0, z0});
     double c101 = srcImage.operator()({x1, y0, z1});
     double c110 = srcImage.operator()({x1, y1, z0});
-    double c111 = srcImage.operator()({x1, y1, y1});
+    double c111 = srcImage.operator()({x1, y1, z1});
 
     double c00 = c000 * (1 - xD) + c100 * xD;
     double c01 = c001 * (1 - xD) + c101 * xD;
