@@ -88,7 +88,7 @@ void processDT(Image &imDT, bool isInterior) {
          it != itend;
          ++it) {
         if (imDT(*it) == 1) {
-            imDT.setValue(*it, isInterior ? -0.5 : 0.5);
+            imDT.setValue(*it, isInterior ? -1 : 1);
         } else {
             if (isInterior && imDT(*it) != 0)
                 imDT.setValue(*it, -imDT(*it));
@@ -103,16 +103,8 @@ void addDTImages(Image im1, Image im2, Image &dst) {
          ++it) {
         value = im1(*it) + im2(*it);
         if (value == 0.)
-            value = 0.5;
+            value = -0.5;
         dst.setValue(*it, value);
-    }
-}
-
-void mergedDTImageToCharValues(Image src, Image &dst) {
-    for (Z3i::Domain::ConstIterator it = dst.domain().begin(), itend = dst.domain().end();
-         it != itend;
-         ++it) {
-
     }
 }
 
@@ -328,7 +320,7 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
 }
 
 Image DTToGrayscale(Image src, float min, float max) {
-    if(min < 0)
+    if (min < 0)
         min = abs(min);
     Image gs(src.domain());
 
@@ -338,11 +330,9 @@ Image DTToGrayscale(Image src, float min, float max) {
     for (Z3i::Domain::ConstIterator it = src.domain().begin(), itend = src.domain().end();
          it != itend;
          ++it) {
-        if(src(*it) < 0)
-        {
+        if (src(*it) < 0) {
             gs.setValue(*it, src(*it) * step1);
-        } else if (src(*it) > 0)
-        {
+        } else if (src(*it) > 0) {
             gs.setValue(*it, src(*it) * step2);
         } else
             gs.setValue(*it, 0);
@@ -403,8 +393,26 @@ int main(int argc, char **argv) {
 
     cout << "- Interpolation method chosen: " << interp << "." << endl;
 
-    Image image = VolReader<Image>::importVol(inputFilename);
-    Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
+    //Image image = VolReader<Image>::importVol(inputFilename);
+    //Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
+
+    PointVector<3, int> lowerBound = {-20, -20, -20};
+    PointVector<3, int> upperBound = {19, 19, 19};
+
+    Z3i::Domain domain(lowerBound, upperBound);
+    Image image(domain);
+    int cubeX = 10, cubeY = 10, cubeZ = 10;
+    for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
+        for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
+            for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
+                if(x <= cubeX && y <= cubeY && z <= cubeZ)
+                    if(x >= -cubeX && y >= -cubeY && z >= -cubeZ)
+                        image.setValue({x,y,z}, 150);
+                else
+                    image.setValue({x,y,z}, 0);
+            }
+        }
+    }
 
     cout << "-- Thresholding ";
     Image thresholdedIm(domain);
