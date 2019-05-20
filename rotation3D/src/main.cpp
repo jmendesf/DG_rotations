@@ -285,7 +285,7 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
     double backY = 0;
     double backZ = 0;
 
-    double value;
+    double value = 0;
 
     for (int z = newDomain.lowerBound()[2]; z <= newDomain.upperBound()[2]; ++z) {
         for (int y = newDomain.lowerBound()[1]; y <= newDomain.upperBound()[1]; ++y) {
@@ -297,10 +297,13 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
                     backY = (int) round(backP[1]);
                     backZ = (int) round(backP[2]);
                 }
+
                 if (backP[0] <= minX || backP[1] <= minY || backP[2] <= minZ) {
+                    imRot.setValue({x, y, z}, 1);
                     continue;
                 }
                 if (backP[0] >= maxX || backP[1] >= maxY || backP[2] >= maxZ) {
+                    imRot.setValue({x, y, z}, 1);
                     continue;
                 }
 
@@ -324,8 +327,16 @@ Image DTToGrayscale(Image src, float min, float max) {
         min = abs(min);
     Image gs(src.domain());
 
-    float step1 = 255 / min;
-    float step2 = 255 / max;
+    float step1, step2;
+
+    if (min == 0)
+        min = 1;
+
+    step1 = 255 / min;
+
+    if (max == 0)
+        max = 1;
+    step2 = 255 / max;
 
     for (Z3i::Domain::ConstIterator it = src.domain().begin(), itend = src.domain().end();
          it != itend;
@@ -405,11 +416,11 @@ int main(int argc, char **argv) {
     for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
         for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
             for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
-                if(x <= cubeX && y <= cubeY && z <= cubeZ)
-                    if(x >= -cubeX && y >= -cubeY && z >= -cubeZ)
-                        image.setValue({x,y,z}, 150);
-                else
-                    image.setValue({x,y,z}, 0);
+                if (x <= cubeX && y <= cubeY && z <= cubeZ)
+                    if (x >= -cubeX && y >= -cubeY && z >= -cubeZ)
+                        image.setValue({x, y, z}, 150);
+                    else
+                        image.setValue({x, y, z}, 0);
             }
         }
     }
@@ -575,7 +586,11 @@ int main(int argc, char **argv) {
     }
 
     Image gsDT = DTToGrayscale(DTAddIm, -max, maxInv);
-    VolWriter<Image, functors::Cast<unsigned char>>::exportVol("test.vol", gsDT);
+    Image gsDT2 = DTToGrayscale(imRotTril, -max, maxInv);
+    Image gsDT3 = DTToGrayscale(imRotNN, -max, maxInv);
+    VolWriter<Image, functors::Cast<unsigned char>>::exportVol("../output/starting_DT.vol", gsDT);
+    VolWriter<Image, functors::Cast<unsigned char>>::exportVol("../output/tril_DT.vol", gsDT2);
+    VolWriter<Image, functors::Cast<unsigned char>>::exportVol("../output/NN_DT.vol", gsDT3);
 
     cout << "-- Visualising with option " << argv[5] << "." << endl;
     int appRet = application.exec();
