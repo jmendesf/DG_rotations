@@ -607,7 +607,6 @@ int main(int argc, char **argv) {
     cout << "-- Viewers populated." << endl;
 
     if (interp.compare("all") == 0 || interp.compare("nn") == 0 || strcmp(argv[5], "shape") == 0) {
-        cout << "here" << endl;
         viewer1 << Viewer3D<>::updateDisplay;
         viewer1.show();
     }
