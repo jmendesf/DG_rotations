@@ -442,7 +442,12 @@ int main(int argc, char **argv) {
                 }
             }
         } else if (shape == "sph") {
-            double r = 10;
+            double r;
+            if(argc == 8)
+                r = 10;
+            else
+                r = stod(argv[8]);
+            
             for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
                 for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
                     for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
