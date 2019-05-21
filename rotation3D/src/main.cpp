@@ -41,8 +41,12 @@ typedef functors::SimpleThresholdForegroundPredicate<Image> Predicate;
 typedef DistanceTransformation<Z3i::Space, Predicate, Z3i::L2Metric> DTL2;
 
 void usage() {
-    cout << "usage: ./rotation3D angle aX aY aZ visualisation interp" << endl;
+    cout << "usage: ./rotation3D angle aX aY aZ visualisation interp [shape] [shape param]" << endl;
     cout << "visualisation: shape, rot" << endl;
+    cout << "shape: " << endl;
+    cout << "cube: length" << endl;
+    cout << "sph (sphere): radius" << endl;
+    cout << "el (ellipsoid): a, b, c" << endl;
 }
 
 void findExtrema(DTL2 dtL2, float &min, float &max) {
@@ -382,7 +386,7 @@ int main(int argc, char **argv) {
     float angle;
     string interp, shape;
 
-    if (argc == 7 || argc == 8 || argc == 9) {
+    if (argc == 7 || argc == 8 || argc == 9 || argc == 11) {
         angle = stod(argv[1]);
         interp = argv[6];
         vecRotation[0] = stod(argv[2]);
@@ -415,7 +419,7 @@ int main(int argc, char **argv) {
     Image image = VolReader<Image>::importVol(inputFilename);
     Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
 
-    if (argc == 8 || argc == 9) {
+    if (argc == 8 || argc == 9 || argc == 11) {
         shape = argv[7];
         PointVector<3, int> lowerBound = {-20, -20, -20};
         PointVector<3, int> upperBound = {19, 19, 19};
@@ -423,7 +427,7 @@ int main(int argc, char **argv) {
         domain = Z3i::Domain(lowerBound, upperBound);
         image = Image(domain);
 
-        if (shape == "cube") {
+        if (shape == "cube" && (argc == 8 || argc == 9)) {
             double cubeD;
             if(argc == 8)
                 cubeD = 1.5;
@@ -441,13 +445,13 @@ int main(int argc, char **argv) {
                     }
                 }
             }
-        } else if (shape == "sph") {
+        } else if (shape == "sph" && (argc == 8 || argc == 9)) {
             double r;
             if(argc == 8)
                 r = 10;
             else
                 r = stod(argv[8]);
-            
+
             for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
                 for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
                     for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
@@ -458,8 +462,16 @@ int main(int argc, char **argv) {
                     }
                 }
             }
-        } else if (shape == "el") {
-            double a = 10, b = 15, c = 7;
+        } else if (shape == "el" && (argc == 8 || argc == 11)) {
+            double a, b, c;
+            if(argc == 8)
+                a = 10, b = 15, c = 7;
+            else
+            {
+                a = stod(argv[8]);
+                b = stod(argv[9]);
+                c = stod(argv[10]);
+            }
             for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
                 for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
                     for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
