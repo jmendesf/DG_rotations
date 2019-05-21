@@ -318,6 +318,7 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
             }
         }
     }
+    cout << endl;
     return imRot;
 }
 
@@ -381,7 +382,7 @@ int main(int argc, char **argv) {
     float angle;
     string interp, shape;
 
-    if (argc == 7 || argc == 8) {
+    if (argc == 7 || argc == 8 || argc == 9) {
         angle = stod(argv[1]);
         interp = argv[6];
         vecRotation[0] = stod(argv[2]);
@@ -414,7 +415,7 @@ int main(int argc, char **argv) {
     Image image = VolReader<Image>::importVol(inputFilename);
     Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
 
-    if (argc == 8) {
+    if (argc == 8 || argc == 9) {
         shape = argv[7];
         PointVector<3, int> lowerBound = {-20, -20, -20};
         PointVector<3, int> upperBound = {19, 19, 19};
@@ -423,12 +424,17 @@ int main(int argc, char **argv) {
         image = Image(domain);
 
         if (shape == "cube") {
-            int cubeD = 4;
+            double cubeD;
+            if(argc == 8)
+                cubeD = 1.5;
+            else
+                cubeD = stod(argv[8]);
+
             for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
                 for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
                     for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
                         if (x <= cubeD && y <= cubeD && z <= cubeD)
-                            if (x >= -cubeD && y >= -cubeD && z >= -cubeD)
+                            if (x > -cubeD && y > -cubeD && z > -cubeD)
                                 image.setValue({x, y, z}, 150);
                             else
                                 image.setValue({x, y, z}, 0);
@@ -510,7 +516,6 @@ int main(int argc, char **argv) {
     cout << "-- Merging both DTs ";
     addDTImages(dtL2Im, dtL2ImInv, DTAddIm);
     cout << "- done." << endl;
-
 
     Image imRotNN = DTAddIm;
     Image imRotTril = DTAddIm;
@@ -601,12 +606,13 @@ int main(int argc, char **argv) {
 
     cout << "-- Viewers populated." << endl;
 
-    if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
+    if (interp.compare("all") == 0 || interp.compare("nn") == 0 || strcmp(argv[5], "shape") == 0) {
+        cout << "here" << endl;
         viewer1 << Viewer3D<>::updateDisplay;
         viewer1.show();
     }
 
-    if (interp.compare("tril") == 0) {
+    if (interp.compare("tril") == 0 && strcmp(argv[5], "shape") != 0) {
         viewer2 << Viewer3D<>::updateDisplay;
         viewer2.show();
     }
