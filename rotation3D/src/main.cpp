@@ -42,7 +42,7 @@ typedef DistanceTransformation<Z3i::Space, Predicate, Z3i::L2Metric> DTL2;
 
 void usage() {
     cout << "usage: ./rotation3D angle aX aY aZ visualisation interp" << endl;
-    cout << "visualisation: shape, dt, rot" << endl;
+    cout << "visualisation: shape, rot" << endl;
 }
 
 void findExtrema(DTL2 dtL2, float &min, float &max) {
@@ -284,7 +284,6 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
     double backX = 0;
     double backY = 0;
     double backZ = 0;
-
     double value = 0;
 
     for (int z = newDomain.lowerBound()[2]; z <= newDomain.upperBound()[2]; ++z) {
@@ -360,21 +359,29 @@ void thresholdDTImage(Image src, Image &dst) {
 }
 
 void initGrad(GradientColorMap<double> &gradient) {
-    gradient.addColor(Color::Red);
+    gradient.addColor(Color::Green);
     gradient.addColor(Color::Yellow);
     gradient.addColor(Color::Green);
     gradient.addColor(Color::Cyan);
     gradient.addColor(Color::Blue);
     gradient.addColor(Color::Magenta);
-    gradient.addColor(Color::Red);
+    gradient.addColor(Color::Green);
+}
+
+bool isInsideEllipsoid(double a, double b, double c, int x, int y, int z) {
+    return (double) ((x / a) * (x / a) + (y / b) * (y / b) + (z / c) * (z / c)) < 1.;
+}
+
+double distanceToPoint(int x1, int y1, int z1, int x2, int y2, int z2) {
+    return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) + (z2 - z1) * (z2 - z1));
 }
 
 int main(int argc, char **argv) {
     float vecRotation[3];
     float angle;
-    string interp;
+    string interp, shape;
 
-    if (argc == 7) {
+    if (argc == 7 || argc == 8) {
         angle = stod(argv[1]);
         interp = argv[6];
         vecRotation[0] = stod(argv[2]);
@@ -404,24 +411,58 @@ int main(int argc, char **argv) {
 
     cout << "- Interpolation method chosen: " << interp << "." << endl;
 
-    //Image image = VolReader<Image>::importVol(inputFilename);
-    //Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
+    Image image = VolReader<Image>::importVol(inputFilename);
+    Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
 
-    PointVector<3, int> lowerBound = {-20, -20, -20};
-    PointVector<3, int> upperBound = {19, 19, 19};
+    if (argc == 8) {
+        shape = argv[7];
+        PointVector<3, int> lowerBound = {-20, -20, -20};
+        PointVector<3, int> upperBound = {19, 19, 19};
 
-    Z3i::Domain domain(lowerBound, upperBound);
-    Image image(domain);
-    int cubeX = 10, cubeY = 10, cubeZ = 10;
-    for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
-        for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
-            for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
-                if (x <= cubeX && y <= cubeY && z <= cubeZ)
-                    if (x >= -cubeX && y >= -cubeY && z >= -cubeZ)
-                        image.setValue({x, y, z}, 150);
-                    else
-                        image.setValue({x, y, z}, 0);
+        domain = Z3i::Domain(lowerBound, upperBound);
+        image = Image(domain);
+
+        if (shape == "cube") {
+            int cubeD = 4;
+            for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
+                for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
+                    for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
+                        if (x <= cubeD && y <= cubeD && z <= cubeD)
+                            if (x >= -cubeD && y >= -cubeD && z >= -cubeD)
+                                image.setValue({x, y, z}, 150);
+                            else
+                                image.setValue({x, y, z}, 0);
+                    }
+                }
             }
+        } else if (shape == "sph") {
+            double r = 10;
+            for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
+                for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
+                    for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
+                        if (distanceToPoint(x, y, z, 0, 0, 0) <= r)
+                            image.setValue({x, y, z}, 150);
+                        else
+                            image.setValue({x, y, z}, 0);
+                    }
+                }
+            }
+        } else if (shape == "el") {
+            double a = 10, b = 15, c = 7;
+            for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
+                for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
+                    for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
+                        if (isInsideEllipsoid(a, b, c, x, y, z))
+                            image.setValue({x, y, z}, 150);
+                        else
+                            image.setValue({x, y, z}, 0);
+                    }
+                }
+            }
+        } else {
+            trace.error();
+            cout << " invalid shape: " << argv[7] << endl;
+            return 0;
         }
     }
 
@@ -490,26 +531,8 @@ int main(int argc, char **argv) {
     int i = 0;
     cout << "-- Populating viewers" << endl;
     viewer1 << SetMode3D((*(domain.begin())).className(), "Paving");
-    if (strcmp(argv[5], "dt") == 0) {
-        for (Z3i::Domain::ConstIterator it = domain.begin(), itend = domain.end();
-             it != itend;
-             ++it) {
 
-            double valDist = imRotNN((*it));
-            if (valDist > -max) {
-                if (valDist < 0)
-                    valDist = maxInv - abs(valDist);
-                Color c = gradient(valDist);
-                viewer1 << CustomColors3D(Color((float) (c.red()),
-                                                (float) (c.green()),
-                                                (float) (c.blue(), transp)),
-                                          Color((float) (c.red()),
-                                                (float) (c.green()),
-                                                (float) (c.blue()), transp));
-                viewer1 << *it;
-            }
-        }
-    } else if (strcmp(argv[5], "shape") == 0) {
+    if (strcmp(argv[5], "shape") == 0) {
         for (Z3i::Domain::ConstIterator it = domain.begin(), itend = domain.end();
              it != itend;
              ++it) {
