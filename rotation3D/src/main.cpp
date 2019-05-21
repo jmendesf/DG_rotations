@@ -246,15 +246,15 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
     double matrixForward[3][3];
     double matrixBackward[3][3];
 
-    cout << "-- Computing Rodrigues' rotation matrices " << endl;
-    cout << "     - Forward";
+    cout << "       Computing Rodrigues' rotation matrices... " << endl;
+    cout << "           - Forward";
     computeRotationMatrix(v1, v2, v3, matrixForward, angle);
     cout << " - done." << endl;
-    cout << "     - Backward";
+    cout << "           - Backward";
     computeRotationMatrix(v1, v2, v3, matrixBackward, -angle);
     cout << " - done." << endl;
 
-    cout << "-- Determining rotated domain boundaries by forward rotation ";
+    cout << "       Determining rotated domain boundaries by forward rotation ";
     PointVector<3, double> p000 = computeRotation({minX, minY, minZ}, matrixForward);
     PointVector<3, double> p100 = computeRotation({maxX, minY, minZ}, matrixForward);
     PointVector<3, double> p010 = computeRotation({minX, maxY, minZ}, matrixForward);
@@ -286,6 +286,7 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
     double backZ = 0;
     double value = 0;
 
+    cout << "       Pointwise rotation..." << endl;
     for (int z = newDomain.lowerBound()[2]; z <= newDomain.upperBound()[2]; ++z) {
         for (int y = newDomain.lowerBound()[1]; y <= newDomain.upperBound()[1]; ++y) {
             for (int x = newDomain.lowerBound()[0]; x <= newDomain.upperBound()[0]; ++x) {
@@ -317,7 +318,6 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
             }
         }
     }
-    cout << "- done." << endl;
     return imRot;
 }
 
@@ -409,7 +409,7 @@ int main(int argc, char **argv) {
          << vecRotation[2] << ")."
          << endl;
 
-    cout << "- Interpolation method chosen: " << interp << "." << endl;
+    cout << "- Interpolation method chosen: " << interp << "." << endl << endl;
 
     Image image = VolReader<Image>::importVol(inputFilename);
     Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
@@ -529,8 +529,9 @@ int main(int argc, char **argv) {
     float transp = 20.;
 
     int i = 0;
-    cout << "-- Populating viewers" << endl;
-    viewer1 << SetMode3D((*(domain.begin())).className(), "Paving");
+
+    viewer1 << SetMode3D((*(domain.begin())).className(), "PavingWired");
+    viewer2 << SetMode3D((*(domain.begin())).className(), "PavingWired");
 
     if (strcmp(argv[5], "shape") == 0) {
         for (Z3i::Domain::ConstIterator it = domain.begin(), itend = domain.end();
@@ -598,6 +599,8 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    cout << "-- Viewers populated." << endl;
+
     if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
         viewer1 << Viewer3D<>::updateDisplay;
         viewer1.show();
@@ -611,9 +614,12 @@ int main(int argc, char **argv) {
     Image gsDT = DTToGrayscale(DTAddIm, -max, maxInv);
     Image gsDT2 = DTToGrayscale(imRotTril, -max, maxInv);
     Image gsDT3 = DTToGrayscale(imRotNN, -max, maxInv);
+
     VolWriter<Image, functors::Cast<unsigned char>>::exportVol("../output/starting_DT.vol", gsDT);
     VolWriter<Image, functors::Cast<unsigned char>>::exportVol("../output/tril_DT.vol", gsDT2);
     VolWriter<Image, functors::Cast<unsigned char>>::exportVol("../output/NN_DT.vol", gsDT3);
+
+    cout << "-- All output saved in the output/ folder." << endl;
 
     cout << "-- Visualising with option " << argv[5] << "." << endl;
     int appRet = application.exec();
