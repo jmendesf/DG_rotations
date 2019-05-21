@@ -281,6 +281,13 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
 
     PointVector<3, int> lowerBound = {minXR, minYR, minZR};
     PointVector<3, int> upperBound = {maxXR, maxYR, maxZR};
+
+    int diffX = maxXR - minXR;
+    int diffy = maxYR - minYR;
+    int diffz = maxZR - minZR;
+
+    int total = (diffX + 1) * (diffy + 1) * (diffz + 1);
+
     Z3i::Domain newDomain(lowerBound, upperBound);
     Image imRot(newDomain);
     cout << "- done." << endl;
@@ -289,12 +296,18 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
     double backY = 0;
     double backZ = 0;
     double value = 0;
+    int count = 1;
 
-    cout << "       Pointwise rotation..." << endl;
+
     for (int z = newDomain.lowerBound()[2]; z <= newDomain.upperBound()[2]; ++z) {
         for (int y = newDomain.lowerBound()[1]; y <= newDomain.upperBound()[1]; ++y) {
             for (int x = newDomain.lowerBound()[0]; x <= newDomain.upperBound()[0]; ++x) {
+                cout << "       Pointwise rotation... " << count << "/" << total << ".\r";
+                cout.flush();
+                count++;
+
                 PointVector<3, double> backP = computeRotation({x, y, z}, matrixBackward);
+
 
                 if (interp.compare("nn") == 0) {
                     backX = (int) round(backP[0]);
@@ -319,9 +332,11 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
                     value = image.operator()({(int) backX, (int) backY, (int) backZ});
 
                 imRot.setValue({x, y, z}, value);
+
             }
         }
     }
+    cout << endl;
     cout << endl;
     return imRot;
 }
@@ -364,17 +379,17 @@ void thresholdDTImage(Image src, Image &dst) {
 }
 
 void initGrad(GradientColorMap<double> &gradient) {
-    gradient.addColor(Color::Green);
+    gradient.addColor(Color::Yellow);
     gradient.addColor(Color::Yellow);
     gradient.addColor(Color::Green);
     gradient.addColor(Color::Cyan);
     gradient.addColor(Color::Blue);
     gradient.addColor(Color::Magenta);
-    gradient.addColor(Color::Green);
+    gradient.addColor(Color::Yellow);
 }
 
 bool isInsideEllipsoid(double a, double b, double c, int x, int y, int z) {
-    return (double) ((x / a) * (x / a) + (y / b) * (y / b) + (z / c) * (z / c)) < 1.;
+    return (double) ((x / a) * (x / a) + (y / b) * (y / b) + (z / c) * (z / c)) <= 1.;
 }
 
 double distanceToPoint(int x1, int y1, int z1, int x2, int y2, int z2) {
@@ -429,7 +444,7 @@ int main(int argc, char **argv) {
 
         if (shape == "cube" && (argc == 8 || argc == 9)) {
             double cubeD;
-            if(argc == 8)
+            if (argc == 8)
                 cubeD = 1.5;
             else
                 cubeD = stod(argv[8]);
@@ -447,7 +462,7 @@ int main(int argc, char **argv) {
             }
         } else if (shape == "sph" && (argc == 8 || argc == 9)) {
             double r;
-            if(argc == 8)
+            if (argc == 8)
                 r = 10;
             else
                 r = stod(argv[8]);
@@ -464,10 +479,9 @@ int main(int argc, char **argv) {
             }
         } else if (shape == "el" && (argc == 8 || argc == 11)) {
             double a, b, c;
-            if(argc == 8)
+            if (argc == 8)
                 a = 10, b = 15, c = 7;
-            else
-            {
+            else {
                 a = stod(argv[8]);
                 b = stod(argv[9]);
                 c = stod(argv[10]);
@@ -644,6 +658,7 @@ int main(int argc, char **argv) {
     cout << "-- All output saved in the output/ folder." << endl;
 
     cout << "-- Visualising with option " << argv[5] << "." << endl;
+
     int appRet = application.exec();
     return appRet;
 }
