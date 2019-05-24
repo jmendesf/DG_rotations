@@ -178,6 +178,13 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         cout << "   Output saved as " << path << endl;
     }
     cout << endl;
+    cout << "============================================================" << endl;
+    cout << endl;
+    cout << "-- Topological informations:" << endl;
+    cout << "   Original image: " << endl;
+    cout << "       - Nb connected components foreground (b0): " << imObjects.size() << endl;
+    cout << "       - Nb connected components background (b2): " << imInvObjects.size() << endl;
+    cout << endl;
 
     // Convert original image to grayscale
     imDTToGS(imAddDTL, -maxDT2, maxDT1);
