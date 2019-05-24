@@ -45,7 +45,6 @@ Image addImages(Image im1, Image im2) {
     // Takes the size of the biggest image
     Image im((im1.domain().size() > im2.domain().size() ? im1.domain() : im2.domain()));
     float value;
-
     for (int y = im.domain().lowerBound()[1]; y <= im.domain().upperBound()[1]; ++y)
         for (int x = im.domain().lowerBound()[0]; x <= im.domain().upperBound()[0]; ++x) {
             value = im1.operator()({x, y}) + im2.operator()({x, y});
@@ -196,7 +195,7 @@ Z2i::Domain getResizedDomain(Image &image) {
 }
 
 ImagePGM thresholdToPGM(Image image) {
-    ImagePGM pgm(getResizedDomain(image));
+    ImagePGM pgm(image.domain());
 
     for (int y = pgm.domain().lowerBound()[1]; y <= pgm.domain().upperBound()[1]; ++y) {
         for (int x = pgm.domain().lowerBound()[0]; x <= pgm.domain().upperBound()[0]; ++x) {

@@ -5,7 +5,9 @@
 #include "../include/tools.h"
 #include "../include/images.h"
 #include "../include/rotations.h"
+#include "../include/digital_objects.h"
 #include "DGtal/io/writers/PGMWriter.h"
+
 
 using std::cout;
 using std::endl;
@@ -47,6 +49,10 @@ void saveSet(Board2D board, Z2i::DigitalSet set, string path) {
 }
 
 void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int minThresh, int maxThresh) {
+    Adj4 adj4;
+    Adj8 adj8;
+    DT4_8 dt4_8(adj4, adj8, JORDAN_DT);
+
     // Create board and set its size
     Board2D board;
     board << image.domain();
@@ -59,6 +65,15 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     cout << "-- Inversing -";
     inverseImage(imInv);
     cout << " done." << endl;
+
+    Z2i::DigitalSet imSet = createDigitalSetFromImage(image);
+    Z2i::DigitalSet imInvSet = createDigitalSetFromImage(imInv);
+
+    ObjectType imObject(dt4_8, imSet);
+    ObjectType imInvObject(dt4_8, imInvSet);
+
+    std::vector<ObjectType> imObjects = createObjectVector(imObject);
+    std::vector<ObjectType> imInvObjects = createObjectVector(imInvObject);
 
     cout << "-- Thresholding -";
     // Threshold the image and its inverse
