@@ -48,6 +48,19 @@ void saveSet(Board2D board, Z2i::DigitalSet set, string path) {
     board.saveEPS(path.c_str());
 }
 
+template<class T>
+void sendToBoard( Board2D & board, T & p_Object, DGtal::Color p_Color) {
+    board << CustomStyle( p_Object.className(), new DGtal::CustomFillColor(p_Color));
+    board << p_Object;
+}
+
+void send1CellsVectorToBoard(std::vector<Z2i::SCell> bdryV, Board2D& board)
+{
+    for(auto cell : bdryV)
+        sendToBoard(board, cell, Color::Red);
+
+}
+
 void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int minThresh, int maxThresh) {
     Adj4 adj4;
     Adj8 adj8;
@@ -74,6 +87,14 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
 
     std::vector<ObjectType> imObjects = createObjectVector(imObject);
     std::vector<ObjectType> imInvObjects = createObjectVector(imInvObject);
+
+    std::vector<Z2i::SCell> bdryVect = getBoundaryVector(imObjects[0]);
+    std::vector<Z2i::SCell> bdryVectInv = getBoundaryVector(imInvObjects[0]);
+
+    board.clear(Color::White);
+    send1CellsVectorToBoard(bdryVect, board);
+    board.saveEPS("../output/1cells.eps");
+    board.clear(Color::White);
 
     cout << "-- Thresholding -";
     // Threshold the image and its inverse
@@ -184,6 +205,11 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     cout << "   Original image: " << endl;
     cout << "       - Nb connected components foreground (b0): " << imObjects.size() << endl;
     cout << "       - Nb connected components background (b2): " << imInvObjects.size() << endl;
+    cout << "       - Surface of the foreground(nb of pixels): "  << imObject.size() << endl;
+    cout << "       - Surface of the background(nb of pixels): " << imInvObject.size() << endl;
+    cout << "       - Nb 1-cells of the boundary (foreground): " << bdryVect.size() << endl;
+    cout << "       - Nb 1-cells of the boundary (background): " << bdryVectInv.size() << endl;
+
     cout << endl;
 
     // Convert original image to grayscale
