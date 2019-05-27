@@ -198,18 +198,18 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         cout << " done." << endl;
         cout << "   Output saved as " << path << endl;
     }
+
     cout << endl;
     cout << "============================================================" << endl;
     cout << endl;
     cout << "-- Topological informations:" << endl;
     cout << "   Original image: " << endl;
-    cout << "       - Nb connected components foreground (b0): " << imObjects.size() << endl;
+    cout << "       - Nb connected components foreground (b0): " << imObjects.size()    << endl;
     cout << "       - Nb connected components background (b2): " << imInvObjects.size() << endl;
-    cout << "       - Surface of the foreground(nb of pixels): "  << imObject.size() << endl;
-    cout << "       - Surface of the background(nb of pixels): " << imInvObject.size() << endl;
-    cout << "       - Nb 1-cells of the boundary (foreground): " << bdryVect.size() << endl;
-    cout << "       - Nb 1-cells of the boundary (background): " << bdryVectInv.size() << endl;
-
+    cout << "       - Surface of the foreground(nb of pixels): " << imObject.size()     << endl;
+    cout << "       - Surface of the background(nb of pixels): " << imInvObject.size()  << endl;
+    cout << "       - Nb 1-cells of the boundary (foreground): " << bdryVect.size()     << endl;
+    cout << "       - Nb 1-cells of the boundary (background): " << bdryVectInv.size()  << endl;
     cout << endl;
 
     // Convert original image to grayscale
