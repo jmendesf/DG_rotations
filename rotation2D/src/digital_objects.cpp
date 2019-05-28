@@ -44,3 +44,10 @@ std::vector<Z2i::SCell> getBoundaryVector(ObjectType obj)
   Surfaces<KSpace>::track2DBoundary(vectBdrySCell, kSpace, sAdj, obj.pointSet(), cell);
   return vectBdrySCell;
 }
+
+KSpace initKSpace(Point p1, Point p2)
+{
+  KSpace K;
+  K.init(p1, p2, true);
+  return K;
+}

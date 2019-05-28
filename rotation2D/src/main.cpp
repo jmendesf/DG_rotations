@@ -87,9 +87,39 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
 
     std::vector<ObjectType> imObjects = createObjectVector(imObject);
     std::vector<ObjectType> imInvObjects = createObjectVector(imInvObject);
-
     std::vector<Z2i::SCell> bdryVect = getBoundaryVector(imObjects[0]);
     std::vector<Z2i::SCell> bdryVectInv = getBoundaryVector(imInvObjects[0]);
+
+    KSpace K = initKSpace(image.domain().lowerBound(), image.domain().upperBound());
+    CC complex(K);
+
+    // complex.insertCell( 0, K.uCell( KSpace::Point( 0, 0 ) ) ); // it is optional (but slightly faster)
+    // complex.insertCell( 1, K.uCell( KSpace::Point( 1, 0 ) ) ); // to specify the dimension of the cell
+    // complex.insertCell( 0, K.uCell( KSpace::Point( 2, 0 ) ) ); // at insertion.
+    // complex.insertCell( 1, K.uCell( KSpace::Point( 2, 1 ) ) );
+    // complex.insertCell( 0, K.uCell( KSpace::Point( 2, 2 ) ) );
+    // complex.insertCell( 1, K.uCell( KSpace::Point( 1, 2 ) ) );
+    // complex.insertCell( 0, K.uCell( KSpace::Point( 0, 2 ) ) );
+    // complex.insertCell( 1, K.uCell( KSpace::Point( 0, 1 ) ) );
+
+    complex.insertCell( K.uSpel( KSpace::Point(1,1) ) );
+    complex.insertCell( K.uSpel( KSpace::Point(2,1) ) );
+    complex.insertCell( K.uSpel( KSpace::Point(3,1) ) );
+    complex.insertCell( K.uSpel( KSpace::Point(2,2) ) );
+    complex.insertCell( K.uSpel( KSpace::Point(3,2) ) );
+    complex.insertCell( K.uSpel( KSpace::Point(4,2) ) );
+    complex.close();
+    
+    trace.beginBlock( "Displays Cubical Complex" );
+    board << image.domain();
+    board << CustomStyle( complex.className(), 
+                            new CustomColors( Color(80,80,100), Color(180,180,200) ) )
+            << complex;
+    board.saveEPS( "cubical-complex-illustrations-X.eps" );
+    trace.endBlock();
+
+    cout << "-- Euler number is " << complex.euler() << endl;
+
 
     board.clear(Color::White);
     send1CellsVectorToBoard(bdryVect, board);
