@@ -79,21 +79,23 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     inverseImage(imInv);
     cout << " done." << endl;
 
+    // create set for the image and its inverse
     Z2i::DigitalSet imSet = createDigitalSetFromImage(image);
     Z2i::DigitalSet imInvSet = createDigitalSetFromImage(imInv);
 
+    // generate digital object
     ObjectType imObject(dt4_8, imSet);
     ObjectType imInvObject(dt4_8, imInvSet);
 
+    // compute vectors of connected components
     std::vector<ObjectType> imObjects = createObjectVector(imObject);
     std::vector<ObjectType> imInvObjects = createObjectVector(imInvObject);
     std::vector<Z2i::SCell> bdryVect = getBoundaryVector(imObjects[0]);
     std::vector<Z2i::SCell> bdryVectInv = getBoundaryVector(imInvObjects[0]);
 
+    
     cout << "-- Building cubical complexes... "; 
-
     KSpace K = initKSpace(image.domain().lowerBound(), image.domain().upperBound());
-
     CC ccIm(K);
     CC ccImInv(K);
     getCCFromImage(image, ccIm, K);
@@ -159,6 +161,9 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     Image imBil = imAddDTL;
     Image imBic = imAddDTL;
     std::vector<CC> cCVector;
+    std::vector<std::vector<ObjectType>> objComponents;
+    std::vector<std::vector<ObjectType>> objInvComponents;
+
     // Compute rotations depending on the given argument
     // Nearest neighbor
     if ((method == NEAREST_NEIGHBOR) || (method == ALL)) {
@@ -168,6 +173,8 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
 
         // Thresholding operations
         thresholdDTImage(imNN, rotIm);
+        Image rotImInv = rotIm;
+        inverseImage(rotImInv);
         ImagePGM pgm = thresholdToPGM(imNN);
 
         // Saves
@@ -183,6 +190,16 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         getCCFromImage(rotIm, cNN, kNN);
         cCVector.push_back(cNN);
         cout << "- done." << endl;
+        
+        cout << "   Building corresponding digital object... ";
+        Z2i::DigitalSet rotSet = createDigitalSetFromImage(rotIm);
+        ObjectType objTRot(dt4_8, rotSet);
+        objComponents.push_back(createObjectVector(objTRot));
+
+        Z2i::DigitalSet rotSetInv = createDigitalSetFromImage(rotImInv);
+        ObjectType objTRotInv(dt4_8, rotSetInv);
+        objInvComponents.push_back(createObjectVector(objTRotInv));
+        cout << "- done." << endl;
     }
 
     // Bilinear interpolation
@@ -194,6 +211,8 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         // Thresholding operations
         thresholdDTImage(imBil, rotIm);
         ImagePGM pgm = thresholdToPGM(imBil);
+        Image rotImInv = rotIm;
+        inverseImage(rotImInv);
 
         // Saves
         PGMWriter<ImagePGM>::exportPGM("../output/rotation_BIL/bil.pgm", pgm);
@@ -208,6 +227,16 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         getCCFromImage(rotIm, cBil, kBil);
         cCVector.push_back(cBil);
         cout << "- done." << endl;
+
+        cout << "   Building corresponding digital object... ";
+        Z2i::DigitalSet rotSet = createDigitalSetFromImage(rotIm);
+        ObjectType objTRot(dt4_8, rotSet);
+        objComponents.push_back(createObjectVector(objTRot));
+
+        Z2i::DigitalSet rotSetInv = createDigitalSetFromImage(rotImInv);
+        ObjectType objTRotInv(dt4_8, rotSetInv);
+        objInvComponents.push_back(createObjectVector(objTRotInv));
+        cout << "- done." << endl;
     }
 
     // Bicubic interpolation
@@ -217,7 +246,8 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         Image rotIm(getResizedDomain(imBic));
         // Thresholding operations
         thresholdDTImage(imBic, rotIm);
-
+        Image rotImInv = rotIm;
+        inverseImage(rotImInv);
         ImagePGM pgm = thresholdToPGM(imBic);
 
         // Saves
@@ -232,6 +262,16 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         CC cBic(kBic);
         getCCFromImage(rotIm, cBic, kBic);
         cCVector.push_back(cBic);
+        cout << "- done." << endl;
+
+        cout << "   Building corresponding digital object... ";
+        Z2i::DigitalSet rotSet = createDigitalSetFromImage(rotIm);
+        ObjectType objTRot(dt4_8, rotSet);
+        objComponents.push_back(createObjectVector(objTRot));
+
+        Z2i::DigitalSet rotSetInv = createDigitalSetFromImage(rotImInv);
+        ObjectType objTRotInv(dt4_8, rotSetInv);
+        objInvComponents.push_back(createObjectVector(objTRotInv));
         cout << "- done." << endl;
     }
 
@@ -250,25 +290,30 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     cout << "       - Euler's number (background)              : " << ccImInv.euler()         << endl;
     cout << endl;
 
-    cout << "   Rotated image: " << endl;
     if(cCVector.size() == 3)
     {
         int count = 0;
         for(auto cc : cCVector)
         {
-            switch(count++)
+            switch(count)
             {
                 case 0: 
-                    cout << "       - Euler's number (Nearest Neighbor)        : ";
+                    cout << "   Nearest neighbor " << endl;
+                    
                     break;
                 case 1: 
-                    cout << "       - Euler's number (Bil interpolation)       : ";
+                    cout << "   Bil interpolation " << endl;
+                    
                     break;
                 case 2: 
-                    cout << "       - Euler's number (Bic interpolation)       : ";
+                    cout << "   Bic interpolation " << endl;
+                    
                     break;
             }     
-            cout << cc.euler() << endl;
+            cout << "       - Euler's number: " << cc.euler() << endl;
+            cout << "       - Nb connected components (foreground)   :" << objComponents[count].size() << endl;
+            cout << "       - Nb connected components (background)   :" << objInvComponents[count].size() << endl;
+            count++;
         }
     } else 
     {
@@ -285,6 +330,8 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     DigitalSetInserter <Z2i::DigitalSet> inserterInv(setInv);
     DGtal::setFromImage(dtl2, inserter, 1, 135);
     DGtal::setFromImage(imInv, inserterInv, 1, 135);
+
+    cout << endl;
 }
 
 int main(int argc, char **argv) {
