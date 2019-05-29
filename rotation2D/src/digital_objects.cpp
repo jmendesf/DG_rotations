@@ -51,3 +51,13 @@ KSpace initKSpace(Point p1, Point p2)
   K.init(p1, p2, true);
   return K;
 }
+
+void getCCFromImage(Image im, CC& c, KSpace K)
+{
+
+  for (Z2i::Domain::ConstIterator it = im.domain().begin(), itend = im.domain().end(); it != itend; ++it)
+    if(im(*it) > 0)
+      c.insertCell(K.uSpel(*it));
+
+  c.close();
+}

@@ -90,36 +90,21 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     std::vector<Z2i::SCell> bdryVect = getBoundaryVector(imObjects[0]);
     std::vector<Z2i::SCell> bdryVectInv = getBoundaryVector(imInvObjects[0]);
 
+    cout << "-- Building cubical complexes... "; 
+
     KSpace K = initKSpace(image.domain().lowerBound(), image.domain().upperBound());
-    CC complex(K);
 
-    // complex.insertCell( 0, K.uCell( KSpace::Point( 0, 0 ) ) ); // it is optional (but slightly faster)
-    // complex.insertCell( 1, K.uCell( KSpace::Point( 1, 0 ) ) ); // to specify the dimension of the cell
-    // complex.insertCell( 0, K.uCell( KSpace::Point( 2, 0 ) ) ); // at insertion.
-    // complex.insertCell( 1, K.uCell( KSpace::Point( 2, 1 ) ) );
-    // complex.insertCell( 0, K.uCell( KSpace::Point( 2, 2 ) ) );
-    // complex.insertCell( 1, K.uCell( KSpace::Point( 1, 2 ) ) );
-    // complex.insertCell( 0, K.uCell( KSpace::Point( 0, 2 ) ) );
-    // complex.insertCell( 1, K.uCell( KSpace::Point( 0, 1 ) ) );
+    CC ccIm(K);
+    CC ccImInv(K);
+    getCCFromImage(image, ccIm, K);
+    getCCFromImage(imInv, ccImInv, K);
 
-    complex.insertCell( K.uSpel( KSpace::Point(1,1) ) );
-    complex.insertCell( K.uSpel( KSpace::Point(2,1) ) );
-    complex.insertCell( K.uSpel( KSpace::Point(3,1) ) );
-    complex.insertCell( K.uSpel( KSpace::Point(2,2) ) );
-    complex.insertCell( K.uSpel( KSpace::Point(3,2) ) );
-    complex.insertCell( K.uSpel( KSpace::Point(4,2) ) );
-    complex.close();
-    
-    trace.beginBlock( "Displays Cubical Complex" );
-    board << image.domain();
-    board << CustomStyle( complex.className(), 
+    cout << "- done." << endl;
+
+    board << CustomStyle( ccIm.className(), 
                             new CustomColors( Color(80,80,100), Color(180,180,200) ) )
-            << complex;
-    board.saveEPS( "cubical-complex-illustrations-X.eps" );
-    trace.endBlock();
-
-    cout << "-- Euler number is " << complex.euler() << endl;
-
+          << ccIm;
+    board.saveEPS( "../output/original_CC.eps" );
 
     board.clear(Color::White);
     send1CellsVectorToBoard(bdryVect, board);
@@ -173,7 +158,7 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     Image imNN = imAddDTL;
     Image imBil = imAddDTL;
     Image imBic = imAddDTL;
-
+    std::vector<CC> cCVector;
     // Compute rotations depending on the given argument
     // Nearest neighbor
     if ((method == NEAREST_NEIGHBOR) || (method == ALL)) {
@@ -191,6 +176,13 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         saveImage(board, rotIm, 0, 255, path);
         cout << " done." << endl;
         cout << "   Output saved as " << path << endl;
+
+        cout << "   Building corresponding cubical complex... ";
+        KSpace kNN = initKSpace(rotIm.domain().lowerBound(), rotIm.domain().upperBound());
+        CC cNN(kNN);
+        getCCFromImage(rotIm, cNN, kNN);
+        cCVector.push_back(cNN);
+        cout << "- done." << endl;
     }
 
     // Bilinear interpolation
@@ -209,6 +201,13 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         saveImage(board, rotIm, 0, 255, path);
         cout << " done." << endl;
         cout << "   Output saved as " << path << endl;
+
+        cout << "   Building corresponding cubical complex... ";
+        KSpace kBil = initKSpace(rotIm.domain().lowerBound(), rotIm.domain().upperBound());
+        CC cBil(kBil);
+        getCCFromImage(rotIm, cBil, kBil);
+        cCVector.push_back(cBil);
+        cout << "- done." << endl;
     }
 
     // Bicubic interpolation
@@ -227,6 +226,13 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         saveImage(board, rotIm, 0, 255, path);
         cout << " done." << endl;
         cout << "   Output saved as " << path << endl;
+
+        cout << "   Building corresponding cubical complex... ";
+        KSpace kBic = initKSpace(rotIm.domain().lowerBound(), rotIm.domain().upperBound());
+        CC cBic(kBic);
+        getCCFromImage(rotIm, cBic, kBic);
+        cCVector.push_back(cBic);
+        cout << "- done." << endl;
     }
 
     cout << endl;
@@ -234,13 +240,40 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     cout << endl;
     cout << "-- Topological informations:" << endl;
     cout << "   Original image: " << endl;
-    cout << "       - Nb connected components foreground (b0): " << imObjects.size()    << endl;
-    cout << "       - Nb connected components background (b2): " << imInvObjects.size() << endl;
-    cout << "       - Surface of the foreground(nb of pixels): " << imObject.size()     << endl;
-    cout << "       - Surface of the background(nb of pixels): " << imInvObject.size()  << endl;
-    cout << "       - Nb 1-cells of the boundary (foreground): " << bdryVect.size()     << endl;
-    cout << "       - Nb 1-cells of the boundary (background): " << bdryVectInv.size()  << endl;
+    cout << "       - Nb connected components foreground (b0)  : " << imObjects.size()        << endl;
+    cout << "       - Nb connected components background (b1)  : " << imInvObjects.size() - 1 << endl;
+    cout << "       - Surface of the foreground(nb of pixels)  : " << imObject.size()         << endl;
+    cout << "       - Surface of the background(nb of pixels)  : " << imInvObject.size()      << endl;
+    cout << "       - Nb 1-cells of the boundary (foreground)  : " << bdryVect.size()         << endl;
+    cout << "       - Nb 1-cells of the boundary (background)  : " << bdryVectInv.size()      << endl;
+    cout << "       - Euler's number (foreground)              : " << ccIm.euler()            << endl;
+    cout << "       - Euler's number (background)              : " << ccImInv.euler()         << endl;
     cout << endl;
+
+    cout << "   Rotated image: " << endl;
+    if(cCVector.size() == 3)
+    {
+        int count = 0;
+        for(auto cc : cCVector)
+        {
+            switch(count++)
+            {
+                case 0: 
+                    cout << "       - Euler's number (Nearest Neighbor)        : ";
+                    break;
+                case 1: 
+                    cout << "       - Euler's number (Bil interpolation)       : ";
+                    break;
+                case 2: 
+                    cout << "       - Euler's number (Bic interpolation)       : ";
+                    break;
+            }     
+            cout << cc.euler() << endl;
+        }
+    } else 
+    {
+        cout << "       - Euler's number (rotated)                 : " << cCVector[0].euler() << endl;
+    }
 
     // Convert original image to grayscale
     imDTToGS(imAddDTL, -maxDT2, maxDT1);
