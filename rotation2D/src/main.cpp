@@ -161,6 +161,7 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     Image imBil = imAddDTL;
     Image imBic = imAddDTL;
     std::vector<CC> cCVector;
+    std::vector<CC> cCInvVector;
     std::vector<std::vector<ObjectType>> objComponents;
     std::vector<std::vector<ObjectType>> objInvComponents;
 
@@ -184,11 +185,16 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         cout << " done." << endl;
         cout << "   Output saved as " << path << endl;
 
-        cout << "   Building corresponding cubical complex... ";
-        KSpace kNN = initKSpace(rotIm.domain().lowerBound(), rotIm.domain().upperBound());
+        cout << "   Building corresponding cubical complexes... ";
+        KSpace kNN = initKSpace(rotImInv.domain().lowerBound(), rotImInv.domain().upperBound());
+
         CC cNN(kNN);
+        CC cNNInv(kNN);
         getCCFromImage(rotIm, cNN, kNN);
+        getCCFromImage(rotImInv, cNNInv, kNN);
+
         cCVector.push_back(cNN);
+        cCInvVector.push_back(cNNInv);
         cout << "- done." << endl;
         
         cout << "   Building corresponding digital object... ";
@@ -221,11 +227,16 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         cout << " done." << endl;
         cout << "   Output saved as " << path << endl;
 
-        cout << "   Building corresponding cubical complex... ";
+        cout << "   Building corresponding cubical complexes... ";
         KSpace kBil = initKSpace(rotIm.domain().lowerBound(), rotIm.domain().upperBound());
         CC cBil(kBil);
+        CC cBilInv(kBil);
+
         getCCFromImage(rotIm, cBil, kBil);
+        getCCFromImage(rotImInv, cBilInv, kBil);
+
         cCVector.push_back(cBil);
+        cCInvVector.push_back(cBilInv);
         cout << "- done." << endl;
 
         cout << "   Building corresponding digital object... ";
@@ -257,11 +268,16 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         cout << " done." << endl;
         cout << "   Output saved as " << path << endl;
 
-        cout << "   Building corresponding cubical complex... ";
+        cout << "   Building corresponding cubical complexes... ";
         KSpace kBic = initKSpace(rotIm.domain().lowerBound(), rotIm.domain().upperBound());
         CC cBic(kBic);
+        CC cBicInv(kBic);
+
         getCCFromImage(rotIm, cBic, kBic);
+        getCCFromImage(rotImInv, cBicInv, kBic);
+
         cCVector.push_back(cBic);
+        cCInvVector.push_back(cBicInv);
         cout << "- done." << endl;
 
         cout << "   Building corresponding digital object... ";
@@ -310,9 +326,10 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
                     
                     break;
             }     
-            cout << "       - Euler's number: " << cc.euler() << endl;
-            cout << "       - Nb connected components (foreground)   :" << objComponents[count].size() << endl;
-            cout << "       - Nb connected components (background)   :" << objInvComponents[count].size() << endl;
+            cout << "       - Euler's number                           : " << cc.euler() << endl;
+            cout << "       - Euler's number (background)              : " << cCInvVector[count].euler() << endl;
+            cout << "       - Nb connected components (foreground)     : " << objComponents[count].size() << endl;
+            cout << "       - Nb connected components (background)     : " << objInvComponents[count].size() - 1<< endl;
             count++;
         }
     } else 
