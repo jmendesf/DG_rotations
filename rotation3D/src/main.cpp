@@ -23,6 +23,15 @@
 #include "DGtal/helpers/StdDefs.h"
 #include <DGtal/io/writers/VolWriter.h>
 
+#include <DGtal/images/imagesSetsUtils/SetFromImage.h>
+#include "DGtal/topology/KhalimskySpaceND.h"
+#include <DGtal/topology/SurfelAdjacency.h>
+#include <DGtal/topology/helpers/Surfaces.h>
+#include <map>
+#include <unordered_map>
+#include "DGtal/topology/CubicalComplex.h"
+#include "DGtal/topology/KhalimskyCellHashFunctions.h"
+
 // #include "../include/tools.h"
 // #include "../include/images.h"
 // #include "../include/rotations.h"
@@ -39,6 +48,10 @@ namespace po = boost::program_options;
 typedef ImageSelector<Z3i::Domain, double>::Type Image;
 typedef functors::SimpleThresholdForegroundPredicate<Image> Predicate;
 typedef DistanceTransformation<Z3i::Space, Predicate, Z3i::L2Metric> DTL2;
+
+typedef KhalimskySpaceND<3, int> KSpace;
+typedef std::map<Cell, CubicalCellData> Map;
+typedef CubicalComplex<KSpace, Map> CC;
 
 void usage() {
     cout << "usage: ./rotation3D angle aX aY aZ visualisation interp [shape] [shape param]" << endl;
@@ -396,6 +409,19 @@ double distanceToPoint(int x1, int y1, int z1, int x2, int y2, int z2) {
     return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) + (z2 - z1) * (z2 - z1));
 }
 
+KSpace initKSpace(Point p1, Point p2) {
+    KSpace K;
+    K.init(p1, p2, true);
+    return K;
+}
+
+void getCCFromImage(Image im, CC& c, KSpace K) {
+    for (Z3i::Domain::ConstIterator it = im.domain().begin(), itend = im.domain().end(); it != itend; ++it)
+        if(im(*it) > 0)
+            c.insertCell(K.uSpel(*it));
+    c.close();
+}
+
 int main(int argc, char **argv) {
     float vecRotation[3];
     float angle;
@@ -420,6 +446,7 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    cout << endl;
     QApplication application(argc, argv);
     string inputFilename = "../samples/cat10.vol";
     cout << "- Rotation on shape " << inputFilename
@@ -511,6 +538,14 @@ int main(int argc, char **argv) {
     cout << "-- Inversing ";
     Image inverse(domain);
     inverseImage(thresholdedIm, inverse);
+    cout << "- done." << endl;
+
+    cout << "-- Building cubical complexes ";
+    KSpace K = initKSpace(image.domain().lowerBound(), image.domain().upperBound());
+    CC ccIm(K);
+    CC ccImInv(K);
+    getCCFromImage(image, ccIm, K);
+    getCCFromImage(image, ccImInv, K);
     cout << "- done." << endl;
 
     Viewer3D<> viewer1;
@@ -658,6 +693,13 @@ int main(int argc, char **argv) {
     cout << "-- All output saved in the output/ folder." << endl;
 
     cout << "-- Visualising with option " << argv[5] << "." << endl;
+
+    cout << endl;
+    cout << "=============================================" << endl;
+    cout << "-- Topological informations:" << endl;
+    cout << "   Original image: " << endl;
+    cout << "       - Euler characteristic (foreground): " << ccIm.euler() << endl;
+    cout << "       - Euler characteristic (background): " << ccImInv.euler() << endl;
 
     int appRet = application.exec();
     return appRet;
