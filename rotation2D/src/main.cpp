@@ -302,8 +302,8 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     cout << "       - Surface of the background(nb of pixels)  : " << imInvObject.size()      << endl;
     cout << "       - Nb 1-cells of the boundary (foreground)  : " << bdryVect.size()         << endl;
     cout << "       - Nb 1-cells of the boundary (background)  : " << bdryVectInv.size()      << endl;
-    cout << "       - Euler's number (foreground)              : " << ccIm.euler()            << endl;
-    cout << "       - Euler's number (background)              : " << ccImInv.euler()         << endl;
+    cout << "       - Euler characteristic (foreground)        : " << ccIm.euler()            << endl;
+    cout << "       - Euler characteristic (background)        : " << ccImInv.euler()         << endl;
     cout << endl;
 
     if(cCVector.size() == 3)
@@ -326,15 +326,16 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
                     
                     break;
             }     
-            cout << "       - Euler's number                           : " << cc.euler() << endl;
-            cout << "       - Euler's number (background)              : " << cCInvVector[count].euler() << endl;
+            cout << "       - Euler characteristic                     : " << cc.euler() << endl;
+            cout << "       - Euler characteristic (background)        : " << cCInvVector[count].euler() << endl;
             cout << "       - Nb connected components (foreground)     : " << objComponents[count].size() << endl;
-            cout << "       - Nb connected components (background)     : " << objInvComponents[count].size() - 1<< endl;
+            cout << "       - Nb connected components (background)     : " << objInvComponents[count].size() - 1 << endl;
+            cout << "       - Surface (foreground)                     : " << objComponents[count][0].size() << endl;
             count++;
         }
     } else 
     {
-        cout << "       - Euler's number (rotated)                 : " << cCVector[0].euler() << endl;
+        cout << "       - Euler characteristic (rotated)            : " << cCVector[0].euler() << endl;
     }
 
     // Convert original image to grayscale
