@@ -785,10 +785,21 @@ int main(int argc, char **argv) {
     cout << "   Original image: " << endl;
     cout << "       - Euler characteristic (foreground)     : " << ccIm.euler() << endl;
     cout << "       - Euler characteristic (background)     : " << ccImInv.euler() << endl;
+
     cout << "       - Nb connected components (foreground)  : " << imObjects.size() << endl;
+    int iComponent = 0;
+    for(auto connComp : imObjects)
+    {
+        cout << "           Volume (component #" << i++ << "): " << connComp.size() << endl;
+    }
+    iComponent = 0;
+
     cout << "       - Nb connected components (background)  : " << imObjectsInv.size() << endl;
-    cout << "       - Foreground volume (number of voxels)  : " << imObjects[0].size() << endl;
-    cout << "       - Background volume (number of voxels)  : " << imObjectsInv[0].size() << endl;
+    for(auto connComp : imObjectsInv)
+    {
+        cout << "           Volume (component #" << i++ << "): " << connComp.size() << endl;
+    }
+
     cout << endl;
 
     if (ccVector.size() == 2) {
@@ -803,7 +814,7 @@ int main(int argc, char **argv) {
                     break;
             }
 
-            int iComponent = 0;
+            iComponent = 0;
             cout << "       - Euler characteristic (foreground)     : " << cc.euler() << endl;
             cout << "       - Euler characteristic (background)     : " << ccInvVector[count].euler() << endl;
             cout << "       - Nb connected components (foreground)  : " << objComponents[count].size() << endl;
