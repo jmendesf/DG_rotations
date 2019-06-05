@@ -790,14 +790,14 @@ int main(int argc, char **argv) {
     int iComponent = 0;
     for(auto connComp : imObjects)
     {
-        cout << "           Volume (component #" << i++ << "): " << connComp.size() << endl;
+        cout << "               Volume (component #" << i++ << "): " << connComp.size() << endl;
     }
     iComponent = 0;
 
     cout << "       - Nb connected components (background)  : " << imObjectsInv.size() << endl;
     for(auto connComp : imObjectsInv)
     {
-        cout << "           Volume (component #" << i++ << "): " << connComp.size() << endl;
+        cout << "               Volume (component #" << i++ << "): " << connComp.size() << endl;
     }
 
     cout << endl;
