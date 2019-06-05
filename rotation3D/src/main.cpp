@@ -32,6 +32,9 @@
 #include "DGtal/topology/CubicalComplex.h"
 #include "DGtal/topology/KhalimskyCellHashFunctions.h"
 
+#include "DGtal/kernel/sets/DigitalSetInserter.h"
+#include <DGtal/images/imagesSetsUtils/SetFromImage.h>
+
 // #include "../include/tools.h"
 // #include "../include/images.h"
 // #include "../include/rotations.h"
@@ -52,6 +55,13 @@ typedef DistanceTransformation<Z3i::Space, Predicate, Z3i::L2Metric> DTL2;
 typedef KhalimskySpaceND<3, int> KSpace;
 typedef std::map<Cell, CubicalCellData> Map;
 typedef CubicalComplex<KSpace, Map> CC;
+
+typedef int Integer;
+typedef SpaceND<3, int> Z3;
+typedef MetricAdjacency<Z3, 1> Adj6;
+typedef MetricAdjacency<Z3, 2> Adj18;
+typedef DigitalTopology<Adj6, Adj18> DT6_18;
+typedef DGtal::Object<DT6_18, Z3i::DigitalSet> ObjectType;
 
 void usage() {
     cout << "usage: ./rotation3D angle aX aY aZ visualisation interp [shape] [shape param]" << endl;
@@ -415,11 +425,24 @@ KSpace initKSpace(Point p1, Point p2) {
     return K;
 }
 
-void getCCFromImage(Image im, CC& c, KSpace K) {
+void getCCFromImage(Image im, CC &c, KSpace K) {
     for (Z3i::Domain::ConstIterator it = im.domain().begin(), itend = im.domain().end(); it != itend; ++it)
-        if(im(*it) > 0)
+        if (im(*it) > 0)
             c.insertCell(K.uSpel(*it));
     c.close();
+}
+
+Z3i::DigitalSet createDigitalSetFromImage(Image image) {
+    Z3i::DigitalSet set3d(image.domain());
+    SetFromImage<Z3i::DigitalSet>::append<Image>(set3d, image, 1, 255);
+    return set3d;
+}
+
+std::vector<ObjectType> createObjectVector(ObjectType objT) {
+    std::vector<ObjectType> objects;
+    std::back_insert_iterator<std::vector<ObjectType>> inserter(objects);
+    objT.writeComponents(inserter);
+    return objects;
 }
 
 int main(int argc, char **argv) {
@@ -445,6 +468,10 @@ int main(int argc, char **argv) {
         cout << "invalid interpolation argument: " << interp << endl;
         return 0;
     }
+
+    Adj6 adj6;
+    Adj18 adj18;
+    DT6_18 dt6_18(adj6, adj18, JORDAN_DT);
 
     cout << endl;
     QApplication application(argc, argv);
@@ -540,6 +567,14 @@ int main(int argc, char **argv) {
     inverseImage(thresholdedIm, inverse);
     cout << "- done." << endl;
 
+    Z3i::DigitalSet imSet = createDigitalSetFromImage(image);
+    ObjectType imObject(dt6_18, imSet);
+    std::vector<ObjectType> imObjects = createObjectVector(imObject);
+
+    Z3i::DigitalSet imSetInverse = createDigitalSetFromImage(inverse);
+    ObjectType imObjectInv(dt6_18, imSetInverse);
+    std::vector<ObjectType> imObjectsInv = createObjectVector(imObjectInv);
+
     cout << "-- Building cubical complexes ";
     KSpace K = initKSpace(image.domain().lowerBound(), image.domain().upperBound());
     CC ccIm(K);
@@ -586,13 +621,66 @@ int main(int argc, char **argv) {
     Image imRotNN = DTAddIm;
     Image imRotTril = DTAddIm;
 
+    std::vector<CC> ccVector;
+    std::vector<CC> ccInvVector;
+    std::vector<std::vector<ObjectType>> objComponents;
+    std::vector<std::vector<ObjectType>> objInvComponents;
+
+    Image threshImRotNN(DTAddIm.domain());
+    Image threshImRotTril(DTAddIm.domain());
+
     if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
         cout << "-- Computing rotation using nearest neighbor interpolation" << endl;
         imRotNN = rotateBackward(DTAddIm, angle, vecRotation[0], vecRotation[1], vecRotation[2], "nn");
+        threshImRotNN = Image(imRotNN.domain());
+        thresholdDTImage(imRotNN, threshImRotNN);
+
+        Image imRotInv(threshImRotNN.domain());
+        inverseImage(threshImRotNN, imRotInv);
+
+        cout << "-- Building corresponding cubical complexes... " << endl;
+        KSpace kRot = initKSpace(imRotNN.domain().lowerBound(), imRotNN.domain().upperBound());
+        CC cc(kRot);
+        CC ccInv(kRot);
+        getCCFromImage(threshImRotNN, cc, kRot);
+        getCCFromImage(imRotInv, ccInv, kRot);
+        ccVector.push_back(cc);
+        ccInvVector.push_back(ccInv);
+
+        cout << "-- Building corresponding digital object..." << endl;
+        Z3i::DigitalSet rotSet = createDigitalSetFromImage(threshImRotNN);
+        ObjectType objTRot(dt6_18, rotSet);
+        objComponents.push_back(createObjectVector(objTRot));
+        Z3i::DigitalSet rotSetInv = createDigitalSetFromImage(imRotInv);
+        ObjectType objTRotInv(dt6_18, rotSetInv);
+        objInvComponents.push_back(createObjectVector(objTRotInv));
     }
+
     if (interp.compare("all") == 0 || interp.compare("tril") == 0) {
         cout << "-- Computing rotation using trilinear interpolation" << endl;
         imRotTril = rotateBackward(DTAddIm, angle, vecRotation[0], vecRotation[1], vecRotation[2], "tril");
+        threshImRotTril = Image(imRotTril.domain());
+        thresholdDTImage(imRotTril, threshImRotTril);
+
+        Image imRotInv(threshImRotTril.domain());
+        inverseImage(threshImRotTril, imRotInv);
+
+        cout << "-- Building corresponding cubical complexes... " << endl;
+        KSpace kRot = initKSpace(imRotTril.domain().lowerBound(), imRotTril.domain().upperBound());
+        CC cc(kRot);
+        CC ccInv(kRot);
+        getCCFromImage(threshImRotTril, cc, kRot);
+        getCCFromImage(imRotInv, ccInv, kRot);
+        ccVector.push_back(cc);
+        ccInvVector.push_back(ccInv);
+
+        cout << "-- Building corresponding digital object..." << endl;
+        Z3i::DigitalSet rotSet = createDigitalSetFromImage(threshImRotTril);
+        ObjectType objTRot(dt6_18, rotSet);
+        objComponents.push_back(createObjectVector(objTRot));
+        Z3i::DigitalSet rotSetInv = createDigitalSetFromImage(imRotInv);
+        ObjectType objTRotInv(dt6_18, rotSetInv);
+        objInvComponents.push_back(createObjectVector(objTRotInv));
     }
 
     GradientColorMap<double> gradient(0, 255);
@@ -622,10 +710,7 @@ int main(int argc, char **argv) {
             }
         }
     } else if (strcmp(argv[5], "rot") == 0) {
-        Image threshImRotNN(imRotNN.domain());
-        Image threshImRotTril(imRotTril.domain());
-        thresholdDTImage(imRotNN, threshImRotNN);
-        thresholdDTImage(imRotTril, threshImRotTril);
+
 
         if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
             for (Z3i::Domain::ConstIterator it = imRotNN.domain().begin(), itend = imRotNN.domain().end();
@@ -695,11 +780,47 @@ int main(int argc, char **argv) {
     cout << "-- Visualising with option " << argv[5] << "." << endl;
 
     cout << endl;
-    cout << "=============================================" << endl;
+    cout << "=============================================" << endl << endl;
     cout << "-- Topological informations:" << endl;
     cout << "   Original image: " << endl;
-    cout << "       - Euler characteristic (foreground): " << ccIm.euler() << endl;
-    cout << "       - Euler characteristic (background): " << ccImInv.euler() << endl;
+    cout << "       - Euler characteristic (foreground)     : " << ccIm.euler() << endl;
+    cout << "       - Euler characteristic (background)     : " << ccImInv.euler() << endl;
+    cout << "       - Nb connected components (foreground)  : " << imObjects.size() << endl;
+    cout << "       - Nb connected components (background)  : " << imObjectsInv.size() << endl;
+    cout << "       - Foreground volume (number of voxels)  : " << imObjects[0].size() << endl;
+    cout << "       - Background volume (number of voxels)  : " << imObjectsInv[0].size() << endl;
+    cout << endl;
+
+    if (ccVector.size() == 2) {
+        int count = 0;
+        for (auto cc : ccVector) {
+            switch (count) {
+                case 0:
+                    cout << "   Nearest neighbor: " << endl;
+                    break;
+                case 1:
+                    cout << "   Trilinear interpolation: " << endl;
+                    break;
+            }
+
+            int iComponent = 0;
+            cout << "       - Euler characteristic (foreground)     : " << cc.euler() << endl;
+            cout << "       - Euler characteristic (background)     : " << ccInvVector[count].euler() << endl;
+            cout << "       - Nb connected components (foreground)  : " << objComponents[count].size() << endl;
+
+            for (auto comp : objComponents[count]) {
+                cout << "               Volume (component #" << iComponent++ << "): " << comp.size() << endl;
+            }
+            iComponent = 0;
+
+            cout << "       - Nb connected components (background)  : " << objInvComponents[count].size() << endl;
+            for (auto comp : objInvComponents[count]) {
+                cout << "               Volume (component #" << iComponent++ << "): " << comp.size() << endl;
+            }
+            count++;
+        }
+    }
+    cout << endl;
 
     int appRet = application.exec();
     return appRet;
