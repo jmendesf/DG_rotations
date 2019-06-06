@@ -789,7 +789,7 @@ int main(int argc, char **argv) {
     cout << "-- Visualising with option " << argv[5] << "." << endl;
 
     cout << endl;
-    cout << "=============================================" << endl << endl;
+    cout << "==================================================" << endl << endl;
     cout << "-- Topological informations:" << endl;
     cout << "   Original image: " << endl;
     cout << "       - Euler characteristic                  : " << ccIm.euler() << endl;
@@ -821,7 +821,7 @@ int main(int argc, char **argv) {
             for(auto comp : objComponents[i]) {
                 if(count++ == 0)
                     continue;
-                cout << "           Volume of component #" << count << "          : " << comp.size() << endl;
+                cout << "           Volume of component #" << count << "              : " << comp.size() << endl;
             }
             cout << "       - Nb of cavities                        : " << objInvComponents[i].size() - 1 << endl;
         }
@@ -839,7 +839,7 @@ int main(int argc, char **argv) {
         for(auto comp : objComponents[0]) {
             if(++count == 1)
                 continue;
-            cout << "               Volume of component #" << count << "          : " << comp.size() << endl;
+            cout << "           Volume of component #" << count << "              : " << comp.size() << endl;
         }
         cout << "       - Nb of cavities                        : " << objInvComponents[0].size() - 1 << endl;
     }
