@@ -35,10 +35,6 @@
 #include "DGtal/kernel/sets/DigitalSetInserter.h"
 #include <DGtal/images/imagesSetsUtils/SetFromImage.h>
 
-// #include "../include/tools.h"
-// #include "../include/images.h"
-// #include "../include/rotations.h"
-
 using std::cout;
 using std::endl;
 using std::string;
@@ -61,7 +57,8 @@ typedef SpaceND<3, int> Z3;
 typedef MetricAdjacency<Z3, 1> Adj6;
 typedef MetricAdjacency<Z3, 2> Adj18;
 typedef DigitalTopology<Adj6, Adj18> DT6_18;
-typedef DGtal::Object<DT6_18, Z3i::DigitalSet> ObjectType;
+typedef DigitalTopology<Adj6, Adj6> DT6_6;
+typedef DGtal::Object<DT6_6, Z3i::DigitalSet> ObjectType;
 
 void usage() {
     cout << "usage: ./rotation3D angle aX aY aZ visualisation interp [shape] [shape param]" << endl;
@@ -477,7 +474,7 @@ int main(int argc, char **argv) {
 
     Adj6 adj6;
     Adj18 adj18;
-    DT6_18 dt6_18(adj6, adj18, JORDAN_DT);
+    DT6_6 dt6_6(adj6, adj6, JORDAN_DT);
 
     cout << endl;
     QApplication application(argc, argv);
@@ -573,12 +570,15 @@ int main(int argc, char **argv) {
     inverseImage(thresholdedIm, inverse);
     cout << "- done." << endl;
 
-    Z3i::DigitalSet imSet = createDigitalSetFromImage(image);
-    ObjectType imObject(dt6_18, imSet);
-    std::vector<ObjectType> imObjects = createObjectVector(imObject);
 
+    cout << "-- Building digital sets..." << endl;
+    Z3i::DigitalSet imSet = createDigitalSetFromImage(image);
     Z3i::DigitalSet imSetInverse = createDigitalSetFromImage(inverse);
-    ObjectType imObjectInv(dt6_18, imSetInverse);
+
+    cout << "-- Building corresponding objects and computing connected components..." << endl;
+    ObjectType imObject(dt6_6, imSet);
+    ObjectType imObjectInv(dt6_6, imSetInverse);
+    std::vector<ObjectType> imObjects = createObjectVector(imObject);
     std::vector<ObjectType> imObjectsInv = createObjectVector(imObjectInv);
 
     cout << "-- Building cubical complexes ";
@@ -646,11 +646,11 @@ int main(int argc, char **argv) {
 
         cout << "-- Building corresponding digital object..." << endl;
         Z3i::DigitalSet rotSet = createDigitalSetFromImage(threshImRotNN);
-        ObjectType objTRot(dt6_18, rotSet);
+        ObjectType objTRot(dt6_6, rotSet);
         std::vector<ObjectType> connectedComponents = createObjectVector(objTRot);
         objComponents.push_back(connectedComponents);
         Z3i::DigitalSet rotSetInv = createDigitalSetFromImage(imRotInv);
-        ObjectType objTRotInv(dt6_18, rotSetInv);
+        ObjectType objTRotInv(dt6_6, rotSetInv);
         objInvComponents.push_back(createObjectVector(objTRotInv));
 
         cout << "-- Building corresponding cubical complexes... " << endl;
@@ -674,17 +674,17 @@ int main(int argc, char **argv) {
 
         cout << "-- Building corresponding digital object..." << endl;
         Z3i::DigitalSet rotSet = createDigitalSetFromImage(threshImRotTril);
-        ObjectType objTRot(dt6_18, rotSet);
+        ObjectType objTRot(dt6_6, rotSet);
         std::vector<ObjectType> connectedComponents = createObjectVector(objTRot);
         objComponents.push_back(connectedComponents);
         Z3i::DigitalSet rotSetInv = createDigitalSetFromImage(imRotInv);
-        ObjectType objTRotInv(dt6_18, rotSetInv);
+        ObjectType objTRotInv(dt6_6, rotSetInv);
         objInvComponents.push_back(createObjectVector(objTRotInv));
 
         cout << "-- Building corresponding cubical complexes... " << endl;
         KSpace kRot = initKSpace(imRotTril.domain().lowerBound(), imRotTril.domain().upperBound());
 
-        for(auto comp : connectedComponents) {
+        for (auto comp : connectedComponents) {
             CC c(kRot);
             objectTypeToCubicalComplex(comp, c, kRot);
             ccVectorTril.push_back(c);
@@ -812,19 +812,20 @@ int main(int argc, char **argv) {
     cout << endl;
 
 
-    if(interp == "all") {
+    if (interp == "all") {
         for (int i = 0; i < 2; i++) {
-            if(i == 0)
+            if (i == 0)
                 cout << "   Nearest neighbor: " << endl;
             else
                 cout << "   Trilinear interpolation: " << endl;
             cout << "       - Nb connected components (foreground)  : " << objComponents[i].size() << endl;
 
             int count = 0;
-            for(auto cc : (i == 0) ? ccVectorNN : ccVectorTril) {
+            for (auto cc : (i == 0) ? ccVectorNN : ccVectorTril) {
                 cout << "           Euler characteristic (component #" << count++ << ") : " << cc.euler() << endl;
             }
             cout << "       - Main component volume                 : " << objComponents[i][0].size() << endl;
+            cout << "       - Nb of cavities                        : " << objInvComponents[i].size() - 1 << endl;
         }
     }
 
