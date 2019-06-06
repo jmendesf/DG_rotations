@@ -767,6 +767,7 @@ int main(int argc, char **argv) {
 
     if (interp.compare("all") == 0 || interp.compare("nn") == 0 || strcmp(argv[5], "shape") == 0) {
         viewer1 << Viewer3D<>::updateDisplay;
+        viewer2 << Viewer3D<>::updateDisplay;
         viewer1.show();
     }
 
@@ -791,80 +792,59 @@ int main(int argc, char **argv) {
     cout << "=============================================" << endl << endl;
     cout << "-- Topological informations:" << endl;
     cout << "   Original image: " << endl;
-    cout << "       - Euler characteristic (foreground)     : " << ccIm.euler() << endl;
+    cout << "       - Euler characteristic                  : " << ccIm.euler() << endl;
 
-    cout << "       - Nb connected components (foreground)  : " << imObjects.size() << endl;
-    int iComponent = 0;
+    cout << "       - Nb connected components               : " << imObjects.size() << endl;
     for (auto connComp : imObjects) {
         cout << "               Volume (component #" << i++ << "): " << connComp.size() << endl;
     }
-    iComponent = 0;
 
     cout << "       - Nb of cavities                        : " << imObjectsInv.size() - 1 << endl;
-
-    /*
-    for(auto connComp : imObjectsInv)
-    {
-        cout << "               Volume (component #" << i++ << "): " << connComp.size() << endl;
-    }
-    */
-
     cout << endl;
-
 
     if (interp == "all") {
         for (int i = 0; i < 2; i++) {
             if (i == 0)
-                cout << "   Nearest neighbor: " << endl;
+                cout << "   Nearest neighbor rotation: " << endl;
             else
-                cout << "   Trilinear interpolation: " << endl;
-            cout << "       - Nb connected components (foreground)  : " << objComponents[i].size() << endl;
+                cout << "   Trilinear interpolation rotation: " << endl;
 
+            cout << "       - Nb connected components               : " << objComponents[i].size() << endl;
             int count = 0;
             for (auto cc : (i == 0) ? ccVectorNN : ccVectorTril) {
-                cout << "           Euler characteristic (component #" << count++ << ") : " << cc.euler() << endl;
+                cout << "           Euler characteristic (component #" << ++count << ") : " << cc.euler() << endl;
             }
+
             cout << "       - Main component volume                 : " << objComponents[i][0].size() << endl;
+
+            count = 0;
+            for(auto comp : objComponents[i]) {
+                if(count++ == 0)
+                    continue;
+                cout << "           Volume of component #" << count << "          : " << comp.size() << endl;
+            }
             cout << "       - Nb of cavities                        : " << objInvComponents[i].size() - 1 << endl;
         }
-    }
+    } else {
+        cout << "   Rotated image: " << endl;
+        cout << "       - Nb connected components               : " << objComponents[0].size() << endl;
 
-
-    /*
-    if (ccVector.size() == 2) {
         int count = 0;
-        for (auto cc : ccVector) {
-            switch (count) {
-                case 0:
-                    cout << "   Nearest neighbor: " << endl;
-                    break;
-                case 1:
-                    cout << "   Trilinear interpolation: " << endl;
-                    break;
-            }
-
-            iComponent = 0;
-            cout << "       - Euler characteristic (foreground)     : " << cc.euler() << endl;
-            cout << "       - Nb connected components (foreground)  : " << objComponents[count].size() << endl;
-
-            for (auto comp : objComponents[count]) {
-                cout << "               Volume (component #" << iComponent++ << "): " << comp.size() << endl;
-            }
-            iComponent = 0;
-
-            cout << "       - Nb of cavities                        : " << objInvComponents[count].size() - 1 << endl;
-
-            for (auto comp : objInvComponents[count]) {
-                cout << "               Volume (component #" << iComponent++ << "): " << comp.size() << endl;
-            }
-
-
-            count++;
+        for(auto cc : (interp == "nn") ? ccVectorNN : ccVectorTril) {
+            cout << "           Euler characteristic (component #" << ++count << ") : " << cc.euler() << endl;
         }
+
+        count = 0;
+        cout << "       - Main component volume                 : " << objComponents[0][0].size() << endl;
+        for(auto comp : objComponents[0]) {
+            if(++count == 1)
+                continue;
+            cout << "               Volume of component #" << count << "          : " << comp.size() << endl;
+        }
+        cout << "       - Nb of cavities                        : " << objInvComponents[0].size() - 1 << endl;
     }
-    */
-    cout << endl;
 
     int appRet = application.exec();
+    cout << endl;
     return appRet;
 }
