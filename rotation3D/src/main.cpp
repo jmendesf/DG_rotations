@@ -631,6 +631,7 @@ int main(int argc, char **argv) {
     std::vector<CC> ccVectorTril;
     std::vector<std::vector<ObjectType>> objComponents;
     std::vector<std::vector<ObjectType>> objInvComponents;
+    std::vector<std::vector<ObjectType>> cavitiesOfEachComponentNN;
 
     Image threshImRotNN(DTAddIm.domain());
     Image threshImRotTril(DTAddIm.domain());
@@ -644,11 +645,21 @@ int main(int argc, char **argv) {
         Image imRotInv(threshImRotNN.domain());
         inverseImage(threshImRotNN, imRotInv);
 
-        cout << "-- Building corresponding digital object..." << endl;
+        cout << "-- Building corresponding digital objects..." << endl;
         Z3i::DigitalSet rotSet = createDigitalSetFromImage(threshImRotNN);
+
         ObjectType objTRot(dt6_6, rotSet);
         std::vector<ObjectType> connectedComponents = createObjectVector(objTRot);
         objComponents.push_back(connectedComponents);
+
+        cout << "-- Computing cavities using digital objects... " << endl;
+        for (auto comp : connectedComponents) {
+            Z3i::DigitalSet set = comp.pointSet();
+            set.assignFromComplement(set);
+            ObjectType obj(dt6_6, set);
+            cavitiesOfEachComponentNN.push_back(createObjectVector(obj));
+        }
+
         Z3i::DigitalSet rotSetInv = createDigitalSetFromImage(imRotInv);
         ObjectType objTRotInv(dt6_6, rotSetInv);
         objInvComponents.push_back(createObjectVector(objTRotInv));
@@ -818,10 +829,10 @@ int main(int argc, char **argv) {
             cout << "       - Main component volume                 : " << objComponents[i][0].size() << endl;
 
             count = 0;
-            for(auto comp : objComponents[i]) {
-                if(count++ == 0)
+            for (auto comp : objComponents[i]) {
+                if (count++ == 0)
                     continue;
-                cout << "           Volume of component #" << count << "              : " << comp.size() << endl;
+                cout << "           Volume of component #" << count << "               : " << comp.size() << endl;
             }
             cout << "       - Nb of cavities                        : " << objInvComponents[i].size() - 1 << endl;
         }
@@ -830,14 +841,14 @@ int main(int argc, char **argv) {
         cout << "       - Nb connected components               : " << objComponents[0].size() << endl;
 
         int count = 0;
-        for(auto cc : (interp == "nn") ? ccVectorNN : ccVectorTril) {
+        for (auto cc : (interp == "nn") ? ccVectorNN : ccVectorTril) {
             cout << "           Euler characteristic (component #" << ++count << ") : " << cc.euler() << endl;
         }
 
         count = 0;
         cout << "       - Main component volume                 : " << objComponents[0][0].size() << endl;
-        for(auto comp : objComponents[0]) {
-            if(++count == 1)
+        for (auto comp : objComponents[0]) {
+            if (++count == 1)
                 continue;
             cout << "           Volume of component #" << count << "              : " << comp.size() << endl;
         }
