@@ -784,7 +784,6 @@ int main(int argc, char **argv) {
     cout << "-- Topological informations:" << endl;
     cout << "   Original image: " << endl;
     cout << "       - Euler characteristic (foreground)     : " << ccIm.euler() << endl;
-    cout << "       - Euler characteristic (background)     : " << ccImInv.euler() << endl;
 
     cout << "       - Nb connected components (foreground)  : " << imObjects.size() << endl;
     int iComponent = 0;
@@ -799,7 +798,6 @@ int main(int argc, char **argv) {
     {
         cout << "               Volume (component #" << i++ << "): " << connComp.size() << endl;
     }
-
     cout << endl;
 
     if (ccVector.size() == 2) {
@@ -816,7 +814,6 @@ int main(int argc, char **argv) {
 
             iComponent = 0;
             cout << "       - Euler characteristic (foreground)     : " << cc.euler() << endl;
-            cout << "       - Euler characteristic (background)     : " << ccInvVector[count].euler() << endl;
             cout << "       - Nb connected components (foreground)  : " << objComponents[count].size() << endl;
 
             for (auto comp : objComponents[count]) {
@@ -824,10 +821,14 @@ int main(int argc, char **argv) {
             }
             iComponent = 0;
 
-            cout << "       - Nb connected components (background)  : " << objInvComponents[count].size() << endl;
+            cout << "       - Nb of cavities                        : " << objInvComponents[count].size() - 1 << endl;
+
+            /*
             for (auto comp : objInvComponents[count]) {
                 cout << "               Volume (component #" << iComponent++ << "): " << comp.size() << endl;
             }
+            */
+
             count++;
         }
     }
