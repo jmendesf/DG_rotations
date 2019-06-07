@@ -632,6 +632,7 @@ int main(int argc, char **argv) {
     std::vector<std::vector<ObjectType>> objComponents;
     std::vector<std::vector<ObjectType>> objInvComponents;
     std::vector<std::vector<ObjectType>> cavitiesOfEachComponentNN;
+    std::vector<std::vector<ObjectType>> cavitiesOfEachComponentTril;
 
     Image threshImRotNN(DTAddIm.domain());
     Image threshImRotTril(DTAddIm.domain());
@@ -647,10 +648,13 @@ int main(int argc, char **argv) {
 
         cout << "-- Building corresponding digital objects..." << endl;
         Z3i::DigitalSet rotSet = createDigitalSetFromImage(threshImRotNN);
+        Z3i::DigitalSet rotInvSet = createDigitalSetFromImage(imRotInv);
 
         ObjectType objTRot(dt6_6, rotSet);
+        ObjectType objTRotInv(dt6_6, rotInvSet);
         std::vector<ObjectType> connectedComponents = createObjectVector(objTRot);
         objComponents.push_back(connectedComponents);
+        objInvComponents.push_back(createObjectVector(objTRotInv));
 
         cout << "-- Computing cavities using digital objects... " << endl;
         for (auto comp : connectedComponents) {
@@ -659,10 +663,6 @@ int main(int argc, char **argv) {
             ObjectType obj(dt6_6, set);
             cavitiesOfEachComponentNN.push_back(createObjectVector(obj));
         }
-
-        Z3i::DigitalSet rotSetInv = createDigitalSetFromImage(imRotInv);
-        ObjectType objTRotInv(dt6_6, rotSetInv);
-        objInvComponents.push_back(createObjectVector(objTRotInv));
 
         cout << "-- Building corresponding cubical complexes... " << endl;
         KSpace kRot = initKSpace(imRotNN.domain().lowerBound(), imRotNN.domain().upperBound());
@@ -685,12 +685,22 @@ int main(int argc, char **argv) {
 
         cout << "-- Building corresponding digital object..." << endl;
         Z3i::DigitalSet rotSet = createDigitalSetFromImage(threshImRotTril);
+        Z3i::DigitalSet rotInvSet = createDigitalSetFromImage(imRotInv);
+
         ObjectType objTRot(dt6_6, rotSet);
+        ObjectType objTRotInv(dt6_6, rotInvSet);
+
         std::vector<ObjectType> connectedComponents = createObjectVector(objTRot);
         objComponents.push_back(connectedComponents);
-        Z3i::DigitalSet rotSetInv = createDigitalSetFromImage(imRotInv);
-        ObjectType objTRotInv(dt6_6, rotSetInv);
         objInvComponents.push_back(createObjectVector(objTRotInv));
+
+        cout << "-- Computing cavities using digital objects... " << endl;
+        for (auto comp : connectedComponents) {
+            Z3i::DigitalSet set = comp.pointSet();
+            set.assignFromComplement(set);
+            ObjectType obj(dt6_6, set);
+            cavitiesOfEachComponentTril.push_back(createObjectVector(obj));
+        }
 
         cout << "-- Building corresponding cubical complexes... " << endl;
         KSpace kRot = initKSpace(imRotTril.domain().lowerBound(), imRotTril.domain().upperBound());
@@ -705,8 +715,6 @@ int main(int argc, char **argv) {
     GradientColorMap<double> gradient(0, 255);
     initGrad(gradient);
     float transp = 20.;
-
-    int i = 0;
 
     viewer1 << SetMode3D((*(domain.begin())).className(), "PavingWired");
     viewer2 << SetMode3D((*(domain.begin())).className(), "PavingWired");
@@ -729,40 +737,100 @@ int main(int argc, char **argv) {
             }
         }
     } else if (strcmp(argv[5], "rot") == 0) {
-
-
         if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
-            for (Z3i::Domain::ConstIterator it = imRotNN.domain().begin(), itend = imRotNN.domain().end();
-                 it != itend;
-                 ++it) {
-                double valDist = threshImRotNN((*it));
-
-                if (valDist > 254) {
-                    Color c = gradient(valDist);
+            for(int i = 1; i < objInvComponents[0].size(); i++)
+            {
+                for(auto it = objInvComponents[0][i].begin(), itend = objInvComponents[0][i].end();
+                    it != itend;
+                    ++it) {
+                    cout << *it << endl;
+                    Color c = Color::Blue;
                     viewer1 << CustomColors3D(Color((float) (c.red()),
                                                     (float) (c.green()),
-                                                    (float) (c.blue(), 255)),
+                                                    (float) (c.blue(), 230)),
                                               Color((float) (c.red()),
                                                     (float) (c.green()),
-                                                    (float) (c.blue()), 255));
+                                                    (float) (c.blue()), 230));
                     viewer1 << *it;
                 }
             }
+
+            for(auto it = objComponents[0][0].begin(), itend = objComponents[0][0].end();
+            it != itend;
+            ++it) {
+                Color c = Color::Yellow;
+                viewer1 << CustomColors3D(Color((float) (c.red()),
+                                                (float) (c.green()),
+                                                (float) (c.blue(), 155)),
+                                          Color((float) (c.red()),
+                                                (float) (c.green()),
+                                                (float) (c.blue()), 155));
+                viewer1 << *it;
+            }
+
+            for(int i = 1; i < objComponents[0].size(); i++)
+            {
+                for(auto it = objComponents[0][i].begin(), itend = objComponents[0][i].end();
+                it != itend;
+                ++it) {
+                    cout << *it << endl;
+                    Color c = Color::Red;
+                    viewer1 << CustomColors3D(Color((float) (c.red()),
+                                                    (float) (c.green()),
+                                                    (float) (c.blue(), 230)),
+                                              Color((float) (c.red()),
+                                                    (float) (c.green()),
+                                                    (float) (c.blue()), 230));
+                    viewer1 << *it;
+                }
+            }
+
+
         }
 
         if (interp.compare("all") == 0 || interp.compare("tril") == 0) {
-            for (Z3i::Domain::ConstIterator it = imRotNN.domain().begin(), itend = imRotNN.domain().end();
-                 it != itend;
-                 ++it) {
-                double valDist = threshImRotTril((*it));
-                if (valDist > 254) {
-                    Color c = gradient(valDist);
+            int trilIndex = (interp == "tril") ? 0 : 1;
+            for(int i = 1; i < objInvComponents[trilIndex].size(); i++)
+            {
+                for(auto it = objInvComponents[trilIndex][i].begin(), itend = objInvComponents[trilIndex][i].end();
+                    it != itend;
+                    ++it) {
+                    Color c = Color::Blue;
                     viewer2 << CustomColors3D(Color((float) (c.red()),
                                                     (float) (c.green()),
-                                                    (float) (c.blue(), 255)),
+                                                    (float) (c.blue(), 230)),
                                               Color((float) (c.red()),
                                                     (float) (c.green()),
-                                                    (float) (c.blue()), 255));
+                                                    (float) (c.blue()), 230));
+                    viewer2 << *it;
+                }
+            }
+
+            for(auto it = objComponents[trilIndex][0].begin(), itend = objComponents[trilIndex][0].end();
+                it != itend;
+                ++it) {
+                Color c = Color::Yellow;
+                viewer2 << CustomColors3D(Color((float) (c.red()),
+                                                (float) (c.green()),
+                                                (float) (c.blue(), 155)),
+                                          Color((float) (c.red()),
+                                                (float) (c.green()),
+                                                (float) (c.blue()), 155));
+                viewer2 << *it;
+            }
+
+            for(int i = 1; i < objComponents[trilIndex].size(); i++)
+            {
+                for(auto it = objComponents[trilIndex][i].begin(), itend = objComponents[trilIndex][i].end();
+                    it != itend;
+                    ++it) {
+                    Color c = Color::Red;
+                    viewer2 << CustomColors3D(Color((float) (c.red()),
+                                                    (float) (c.green()),
+                                                    (float) (c.blue(), 230)),
+                                              Color((float) (c.red()),
+                                                    (float) (c.green()),
+                                                    (float) (c.blue()), 230));
                     viewer2 << *it;
                 }
             }
@@ -806,6 +874,7 @@ int main(int argc, char **argv) {
     cout << "       - Euler characteristic                  : " << ccIm.euler() << endl;
 
     cout << "       - Nb connected components               : " << imObjects.size() << endl;
+    int i = 0;
     for (auto connComp : imObjects) {
         cout << "               Volume (component #" << i++ << "): " << connComp.size() << endl;
     }
@@ -823,18 +892,14 @@ int main(int argc, char **argv) {
             cout << "       - Nb connected components               : " << objComponents[i].size() << endl;
             int count = 0;
             for (auto cc : (i == 0) ? ccVectorNN : ccVectorTril) {
-                cout << "           Euler characteristic (component #" << ++count << ") : " << cc.euler() << endl;
+                cout << "       Component #" << count << ": " << endl;
+                cout << "           Euler characteristic: " << cc.euler() << endl;
+                cout << "           Nb of internal cavities: "
+                     << ((i == 0) ? cavitiesOfEachComponentNN[count].size() - 1
+                                  : cavitiesOfEachComponentTril[count].size() - 1) << endl;
+                cout << "           Volume: " << objComponents[i][count].size() << endl;
+                count++;
             }
-
-            cout << "       - Main component volume                 : " << objComponents[i][0].size() << endl;
-
-            count = 0;
-            for (auto comp : objComponents[i]) {
-                if (count++ == 0)
-                    continue;
-                cout << "           Volume of component #" << count << "               : " << comp.size() << endl;
-            }
-            cout << "       - Nb of cavities                        : " << objInvComponents[i].size() - 1 << endl;
         }
     } else {
         cout << "   Rotated image: " << endl;
@@ -842,17 +907,14 @@ int main(int argc, char **argv) {
 
         int count = 0;
         for (auto cc : (interp == "nn") ? ccVectorNN : ccVectorTril) {
-            cout << "           Euler characteristic (component #" << ++count << ") : " << cc.euler() << endl;
+            cout << "       Component #" << count << ": " << endl;
+            cout << "           Euler characteristic (component #" << count << ") : " << cc.euler() << endl;
+            cout << "           Nb of internal cavities: "
+                 << ((interp == "nn") ? cavitiesOfEachComponentNN[count].size() - 1
+                                      : cavitiesOfEachComponentTril[count].size() - 1) << endl;
+            cout << "           Volume: " << objComponents[0][count].size() << endl;
+            count++;
         }
-
-        count = 0;
-        cout << "       - Main component volume                 : " << objComponents[0][0].size() << endl;
-        for (auto comp : objComponents[0]) {
-            if (++count == 1)
-                continue;
-            cout << "           Volume of component #" << count << "              : " << comp.size() << endl;
-        }
-        cout << "       - Nb of cavities                        : " << objInvComponents[0].size() - 1 << endl;
     }
 
     int appRet = application.exec();
