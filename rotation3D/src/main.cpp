@@ -448,6 +448,20 @@ void objectTypeToCubicalComplex(ObjectType obj, CC &cc, KSpace k) {
     cc.close();
 }
 
+bool isSurroundedByBackground(PointVector<3, int> p, Image i) {
+    double tot = 0;
+    PointVector<3, int> pX(p[0] - 1, p[1], p[2]);
+    PointVector<3, int> pY(p[0], p[1] - 1, p[2]);
+    PointVector<3, int> pZ(p[0], p[1], p[2] - 1);
+    PointVector<3, int> pX2(p[0] + 1, p[1], p[2]);
+    PointVector<3, int> pY2(p[0], p[1] + 1, p[2]);
+    PointVector<3, int> pZ2(p[0], p[1], p[2] + 1);
+    tot += (i(pX) + i(pY) + i(pZ));
+    tot += (i(pX2) + i(pY2) + i(pZ2));
+
+    return tot > 6;
+}
+
 int main(int argc, char **argv) {
     float vecRotation[3];
     float angle;
@@ -714,7 +728,6 @@ int main(int argc, char **argv) {
 
     GradientColorMap<double> gradient(0, 255);
     initGrad(gradient);
-    float transp = 20.;
 
     viewer1 << SetMode3D((*(domain.begin())).className(), "PavingWired");
     viewer2 << SetMode3D((*(domain.begin())).className(), "PavingWired");
@@ -743,7 +756,6 @@ int main(int argc, char **argv) {
                 for(auto it = objInvComponents[0][i].begin(), itend = objInvComponents[0][i].end();
                     it != itend;
                     ++it) {
-                    cout << *it << endl;
                     Color c = Color::Blue;
                     viewer1 << CustomColors3D(Color((float) (c.red()),
                                                     (float) (c.green()),
@@ -773,7 +785,6 @@ int main(int argc, char **argv) {
                 for(auto it = objComponents[0][i].begin(), itend = objComponents[0][i].end();
                 it != itend;
                 ++it) {
-                    cout << *it << endl;
                     Color c = Color::Red;
                     viewer1 << CustomColors3D(Color((float) (c.red()),
                                                     (float) (c.green()),
