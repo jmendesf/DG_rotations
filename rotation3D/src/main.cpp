@@ -718,7 +718,6 @@ int main(int argc, char **argv) {
 
         cout << "-- Building corresponding cubical complexes... " << endl;
         KSpace kRot = initKSpace(imRotTril.domain().lowerBound(), imRotTril.domain().upperBound());
-
         for (auto comp : connectedComponents) {
             CC c(kRot);
             objectTypeToCubicalComplex(comp, c, kRot);
