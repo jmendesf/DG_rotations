@@ -492,7 +492,7 @@ int main(int argc, char **argv) {
 
     cout << endl;
     QApplication application(argc, argv);
-    string inputFilename = "../samples/cat10.vol";
+    string inputFilename = "../samples/bunny.vol";
     cout << "- Rotation on shape " << inputFilename
          << " with " << angle << " rad angle and axis vector ("
          << vecRotation[0] << ","
@@ -561,6 +561,17 @@ int main(int argc, char **argv) {
                 for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
                     for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
                         if (isInsideEllipsoid(a, b, c, x, y, z))
+                            image.setValue({x, y, z}, 150);
+                        else
+                            image.setValue({x, y, z}, 0);
+                    }
+                }
+            }
+        } else if (shape == "plane" && argc == 8) {
+            for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
+                for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
+                    for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
+                        if ((2*x + y + z) == 2 || (2*x + y + z) == 1 || (2*x + y + z) == 0 || (2*x + y + z) == -1 || (2*x + y + z) == -2)
                             image.setValue({x, y, z}, 150);
                         else
                             image.setValue({x, y, z}, 0);
@@ -750,11 +761,10 @@ int main(int argc, char **argv) {
         }
     } else if (strcmp(argv[5], "rot") == 0) {
         if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
-            for(int i = 1; i < objInvComponents[0].size(); i++)
-            {
-                for(auto it = objInvComponents[0][i].begin(), itend = objInvComponents[0][i].end();
-                    it != itend;
-                    ++it) {
+            for (int i = 1; i < objInvComponents[0].size(); i++) {
+                for (auto it = objInvComponents[0][i].begin(), itend = objInvComponents[0][i].end();
+                     it != itend;
+                     ++it) {
                     Color c = Color::Blue;
                     viewer1 << CustomColors3D(Color((float) (c.red()),
                                                     (float) (c.green()),
@@ -766,25 +776,27 @@ int main(int argc, char **argv) {
                 }
             }
 
-            for(auto it = objComponents[0][0].begin(), itend = objComponents[0][0].end();
-            it != itend;
-            ++it) {
+            /*
+            for (auto it = objComponents[0][0].begin(), itend = objComponents[0][0].end();
+                 it != itend;
+                 ++it) {
                 Color c = Color::Yellow;
                 viewer1 << CustomColors3D(Color((float) (c.red()),
                                                 (float) (c.green()),
-                                                (float) (c.blue(), 155)),
+                                                (float) (c.blue(), 210)),
                                           Color((float) (c.red()),
                                                 (float) (c.green()),
-                                                (float) (c.blue()), 155));
+                                                (float) (c.blue()), 210));
                 viewer1 << *it;
             }
+             */
 
-            for(int i = 1; i < objComponents[0].size(); i++)
-            {
-                for(auto it = objComponents[0][i].begin(), itend = objComponents[0][i].end();
-                it != itend;
-                ++it) {
-                    Color c = Color::Red;
+            for (int i = 0; i < objComponents[0].size(); i++) {
+                Color c = objComponents[0][i].size() < 10 ? Color::Red : Color::Yellow;
+                for (auto it = objComponents[0][i].begin(), itend = objComponents[0][i].end();
+                     it != itend;
+                     ++it) {
+
                     viewer1 << CustomColors3D(Color((float) (c.red()),
                                                     (float) (c.green()),
                                                     (float) (c.blue(), 230)),
@@ -795,16 +807,14 @@ int main(int argc, char **argv) {
                 }
             }
 
-
         }
 
         if (interp.compare("all") == 0 || interp.compare("tril") == 0) {
             int trilIndex = (interp == "tril") ? 0 : 1;
-            for(int i = 1; i < objInvComponents[trilIndex].size(); i++)
-            {
-                for(auto it = objInvComponents[trilIndex][i].begin(), itend = objInvComponents[trilIndex][i].end();
-                    it != itend;
-                    ++it) {
+            for (int i = 1; i < objInvComponents[trilIndex].size(); i++) {
+                for (auto it = objInvComponents[trilIndex][i].begin(), itend = objInvComponents[trilIndex][i].end();
+                     it != itend;
+                     ++it) {
                     Color c = Color::Blue;
                     viewer2 << CustomColors3D(Color((float) (c.red()),
                                                     (float) (c.green()),
@@ -816,9 +826,10 @@ int main(int argc, char **argv) {
                 }
             }
 
-            for(auto it = objComponents[trilIndex][0].begin(), itend = objComponents[trilIndex][0].end();
-                it != itend;
-                ++it) {
+            /*
+            for (auto it = objComponents[trilIndex][0].begin(), itend = objComponents[trilIndex][0].end();
+                 it != itend;
+                 ++it) {
                 Color c = Color::Yellow;
                 viewer2 << CustomColors3D(Color((float) (c.red()),
                                                 (float) (c.green()),
@@ -828,13 +839,13 @@ int main(int argc, char **argv) {
                                                 (float) (c.blue()), 155));
                 viewer2 << *it;
             }
+             */
 
-            for(int i = 1; i < objComponents[trilIndex].size(); i++)
-            {
-                for(auto it = objComponents[trilIndex][i].begin(), itend = objComponents[trilIndex][i].end();
-                    it != itend;
-                    ++it) {
-                    Color c = Color::Red;
+            for (int i = 0; i < objComponents[trilIndex].size(); i++) {
+                Color c = objComponents[trilIndex][i].size() > 10 ? Color::Yellow : Color::Red;
+                for (auto it = objComponents[trilIndex][i].begin(), itend = objComponents[trilIndex][i].end();
+                     it != itend;
+                     ++it) {
                     viewer2 << CustomColors3D(Color((float) (c.red()),
                                                     (float) (c.green()),
                                                     (float) (c.blue(), 230)),
