@@ -571,7 +571,7 @@ int main(int argc, char **argv) {
             for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
                 for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
                     for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
-                        if ((2*x + y + z) == 2 || (2*x + y + z) == 1 || (2*x + y + z) == 0 || (2*x + y + z) == -1 || (2*x + y + z) == -2)
+                        if ((2*x + y + z) < 5  && (2*x + y + z) > -5 )
                             image.setValue({x, y, z}, 150);
                         else
                             image.setValue({x, y, z}, 0);
@@ -776,21 +776,6 @@ int main(int argc, char **argv) {
                 }
             }
 
-            /*
-            for (auto it = objComponents[0][0].begin(), itend = objComponents[0][0].end();
-                 it != itend;
-                 ++it) {
-                Color c = Color::Yellow;
-                viewer1 << CustomColors3D(Color((float) (c.red()),
-                                                (float) (c.green()),
-                                                (float) (c.blue(), 210)),
-                                          Color((float) (c.red()),
-                                                (float) (c.green()),
-                                                (float) (c.blue()), 210));
-                viewer1 << *it;
-            }
-             */
-
             for (int i = 0; i < objComponents[0].size(); i++) {
                 Color c = objComponents[0][i].size() < 10 ? Color::Red : Color::Yellow;
                 for (auto it = objComponents[0][i].begin(), itend = objComponents[0][i].end();
@@ -825,21 +810,6 @@ int main(int argc, char **argv) {
                     viewer2 << *it;
                 }
             }
-
-            /*
-            for (auto it = objComponents[trilIndex][0].begin(), itend = objComponents[trilIndex][0].end();
-                 it != itend;
-                 ++it) {
-                Color c = Color::Yellow;
-                viewer2 << CustomColors3D(Color((float) (c.red()),
-                                                (float) (c.green()),
-                                                (float) (c.blue(), 155)),
-                                          Color((float) (c.red()),
-                                                (float) (c.green()),
-                                                (float) (c.blue()), 155));
-                viewer2 << *it;
-            }
-             */
 
             for (int i = 0; i < objComponents[trilIndex].size(); i++) {
                 Color c = objComponents[trilIndex][i].size() > 10 ? Color::Yellow : Color::Red;
