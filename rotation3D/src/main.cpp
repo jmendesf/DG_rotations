@@ -585,6 +585,34 @@ int main(int argc, char **argv) {
         }
     }
 
+    if (strcmp(argv[5], "shape") == 0) {
+        GradientColorMap<double> gradient(0, 255);
+        initGrad(gradient);
+
+        Viewer3D<> viewer1;
+        viewer1 << SetMode3D((*(domain.begin())).className(), "PavingWired");
+        for (Z3i::Domain::ConstIterator it = domain.begin(), itend = domain.end();
+             it != itend;
+             ++it) {
+
+            double valDist = image((*it));
+            if (valDist > 0) {
+                Color c = gradient(valDist);
+                viewer1 << CustomColors3D(Color((float) (c.red()),
+                                                (float) (c.green()),
+                                                (float) (c.blue(), 255)),
+                                          Color((float) (c.red()),
+                                                (float) (c.green()),
+                                                (float) (c.blue()), 255));
+                viewer1 << *it;
+            }
+        }
+        viewer1 << Viewer3D<>::updateDisplay;
+        viewer1.show();
+        int appRet = application.exec();
+        return appRet;
+    }
+
     cout << "-- Thresholding ";
     Image thresholdedIm(domain);
     thresholdImage(image, thresholdedIm);
@@ -742,24 +770,7 @@ int main(int argc, char **argv) {
     viewer1 << SetMode3D((*(domain.begin())).className(), "PavingWired");
     viewer2 << SetMode3D((*(domain.begin())).className(), "PavingWired");
 
-    if (strcmp(argv[5], "shape") == 0) {
-        for (Z3i::Domain::ConstIterator it = domain.begin(), itend = domain.end();
-             it != itend;
-             ++it) {
-
-            double valDist = image((*it));
-            if (valDist > 0) {
-                Color c = gradient(valDist);
-                viewer1 << CustomColors3D(Color((float) (c.red()),
-                                                (float) (c.green()),
-                                                (float) (c.blue(), 255)),
-                                          Color((float) (c.red()),
-                                                (float) (c.green()),
-                                                (float) (c.blue()), 255));
-                viewer1 << *it;
-            }
-        }
-    } else if (strcmp(argv[5], "rot") == 0) {
+     if (strcmp(argv[5], "rot") == 0) {
         if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
             for (int i = 1; i < objInvComponents[0].size(); i++) {
                 for (auto it = objInvComponents[0][i].begin(), itend = objInvComponents[0][i].end();
