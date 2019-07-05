@@ -41,7 +41,6 @@ using std::string;
 using std::min;
 using std::max;
 using namespace DGtal;
-using namespace DGtal::Z3i;
 namespace po = boost::program_options;
 
 typedef ImageSelector<Z3i::Domain, double>::Type Image;
@@ -49,16 +48,19 @@ typedef functors::SimpleThresholdForegroundPredicate<Image> Predicate;
 typedef DistanceTransformation<Z3i::Space, Predicate, Z3i::L2Metric> DTL2;
 
 typedef KhalimskySpaceND<3, int> KSpace;
-typedef std::map<Cell, CubicalCellData> Map;
+typedef std::map<Z3i::Cell, CubicalCellData> Map;
 typedef CubicalComplex<KSpace, Map> CC;
 
-typedef int Integer;
 typedef SpaceND<3, int> Z3;
 typedef MetricAdjacency<Z3, 1> Adj6;
 typedef MetricAdjacency<Z3, 2> Adj18;
+typedef MetricAdjacency<Z3, 3> Adj26;
 typedef DigitalTopology<Adj6, Adj18> DT6_18;
 typedef DigitalTopology<Adj6, Adj6> DT6_6;
+typedef DigitalTopology<Adj26, Adj6> DT26_6;
+
 typedef DGtal::Object<DT6_6, Z3i::DigitalSet> ObjectType;
+typedef DGtal::Object<DT26_6, Z3i::DigitalSet> ObjectType26_6;
 
 void usage() {
     cout << "usage: ./rotation3D angle aX aY aZ visualisation interp [shape] [shape param]" << endl;
@@ -416,7 +418,7 @@ double distanceToPoint(int x1, int y1, int z1, int x2, int y2, int z2) {
     return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) + (z2 - z1) * (z2 - z1));
 }
 
-KSpace initKSpace(Point p1, Point p2) {
+KSpace initKSpace(Z3i::Point p1, Z3i::Point p2) {
     KSpace K;
     K.init(p1, p2, true);
     return K;
@@ -438,6 +440,13 @@ Z3i::DigitalSet createDigitalSetFromImage(Image image) {
 std::vector<ObjectType> createObjectVector(ObjectType objT) {
     std::vector<ObjectType> objects;
     std::back_insert_iterator<std::vector<ObjectType>> inserter(objects);
+    objT.writeComponents(inserter);
+    return objects;
+}
+
+std::vector<ObjectType26_6> createObjectVector(ObjectType26_6 objT) {
+    std::vector<ObjectType26_6> objects;
+    std::back_insert_iterator<std::vector<ObjectType26_6>> inserter(objects);
     objT.writeComponents(inserter);
     return objects;
 }
@@ -474,7 +483,10 @@ int main(int argc, char **argv) {
 
     Adj6 adj6;
     Adj18 adj18;
+    Adj26 adj26;
+
     DT6_6 dt6_6(adj6, adj6, JORDAN_DT);
+    DT26_6 dt26_6(adj26, adj6, JORDAN_DT);
 
     cout << endl;
     QApplication application(argc, argv);
@@ -554,9 +566,9 @@ int main(int argc, char **argv) {
                 }
             }
         } else if (shape == "plane" && argc == 8) {
-            for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
-                for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
-                    for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
+            for (int z = domain.lowerBound()[2] + 3; z <= domain.upperBound()[2] - 3; ++z) {
+                for (int y = domain.lowerBound()[1] + 3; y <= domain.upperBound()[1] - 3; ++y) {
+                    for (int x = domain.lowerBound()[0] + 3; x <= domain.upperBound()[0] - 3; ++x) {
                         if ((2*x + y + z) < 5  && (2*x + y + z) > -5 )
                             image.setValue({x, y, z}, 150);
                         else
@@ -609,7 +621,6 @@ int main(int argc, char **argv) {
     inverseImage(thresholdedIm, inverse);
     cout << "- done." << endl;
 
-
     cout << "-- Building digital sets..." << endl;
     Z3i::DigitalSet imSet = createDigitalSetFromImage(image);
     Z3i::DigitalSet imSetInverse = createDigitalSetFromImage(inverse);
@@ -617,14 +628,15 @@ int main(int argc, char **argv) {
     cout << "-- Building corresponding objects and computing connected components..." << endl;
     ObjectType imObject(dt6_6, imSet);
     ObjectType imObjectInv(dt6_6, imSetInverse);
+    ObjectType26_6 imObjectInv26_6(dt26_6, imSetInverse);
+
     std::vector<ObjectType> imObjects = createObjectVector(imObject);
     std::vector<ObjectType> imObjectsInv = createObjectVector(imObjectInv);
-
+    std::vector<ObjectType26_6> imObjectsInvs26_6 = createObjectVector(imObjectInv26_6);
+    
     cout << "-- Building cubical complexes ";
     KSpace K = initKSpace(image.domain().lowerBound(), image.domain().upperBound());
-    CC ccIm(K);
     CC ccImInv(K);
-    getCCFromImage(image, ccIm, K);
     getCCFromImage(image, ccImInv, K);
     cout << "- done." << endl;
 
@@ -665,7 +677,7 @@ int main(int argc, char **argv) {
 
     Image imRotNN = DTAddIm;
     Image imRotTril = DTAddIm;
-    
+
     std::vector<std::vector<ObjectType>> objComponents;
     std::vector<std::vector<ObjectType>> objInvComponents;
 
@@ -822,8 +834,6 @@ int main(int argc, char **argv) {
     cout << "==================================================" << endl << endl;
     cout << "-- Topological informations:" << endl;
     cout << "   Original image: " << endl;
-    cout << "       - Euler characteristic                  : " << ccIm.euler() << endl;
-
     cout << "       - Nb connected components               : " << imObjects.size() << endl;
     int i = 0;
     for (auto connComp : imObjects) {
