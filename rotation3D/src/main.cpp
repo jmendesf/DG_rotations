@@ -132,7 +132,7 @@ void addDTImages(Image im1, Image im2, Image &dst) {
     }
 }
 
-// for debugging
+// for debuggingy
 void printMatrix(double matrix[3][3]) {
     for (int i = 0; i < 3; i++) {
         for (int y = 0; y < 3; y++)
@@ -448,20 +448,6 @@ void objectTypeToCubicalComplex(ObjectType obj, CC &cc, KSpace k) {
     cc.close();
 }
 
-bool isSurroundedByBackground(PointVector<3, int> p, Image i) {
-    double tot = 0;
-    PointVector<3, int> pX(p[0] - 1, p[1], p[2]);
-    PointVector<3, int> pY(p[0], p[1] - 1, p[2]);
-    PointVector<3, int> pZ(p[0], p[1], p[2] - 1);
-    PointVector<3, int> pX2(p[0] + 1, p[1], p[2]);
-    PointVector<3, int> pY2(p[0], p[1] + 1, p[2]);
-    PointVector<3, int> pZ2(p[0], p[1], p[2] + 1);
-    tot += (i(pX) + i(pY) + i(pZ));
-    tot += (i(pX2) + i(pY2) + i(pZ2));
-
-    return tot > 6;
-}
-
 int main(int argc, char **argv) {
     float vecRotation[3];
     float angle;
@@ -679,13 +665,9 @@ int main(int argc, char **argv) {
 
     Image imRotNN = DTAddIm;
     Image imRotTril = DTAddIm;
-
-    std::vector<CC> ccVectorNN;
-    std::vector<CC> ccVectorTril;
+    
     std::vector<std::vector<ObjectType>> objComponents;
     std::vector<std::vector<ObjectType>> objInvComponents;
-    std::vector<std::vector<ObjectType>> cavitiesOfEachComponentNN;
-    std::vector<std::vector<ObjectType>> cavitiesOfEachComponentTril;
 
     Image threshImRotNN(DTAddIm.domain());
     Image threshImRotTril(DTAddIm.domain());
@@ -708,23 +690,6 @@ int main(int argc, char **argv) {
         std::vector<ObjectType> connectedComponents = createObjectVector(objTRot);
         objComponents.push_back(connectedComponents);
         objInvComponents.push_back(createObjectVector(objTRotInv));
-
-        cout << "-- Computing cavities using digital objects... " << endl;
-        for (auto comp : connectedComponents) {
-            Z3i::DigitalSet set = comp.pointSet();
-            set.assignFromComplement(set);
-            ObjectType obj(dt6_6, set);
-            cavitiesOfEachComponentNN.push_back(createObjectVector(obj));
-        }
-
-        cout << "-- Building corresponding cubical complexes... " << endl;
-        KSpace kRot = initKSpace(imRotNN.domain().lowerBound(), imRotNN.domain().upperBound());
-
-        for (auto comp : connectedComponents) {
-            CC c(kRot);
-            objectTypeToCubicalComplex(comp, c, kRot);
-            ccVectorNN.push_back(c);
-        }
     }
 
     if (interp.compare("all") == 0 || interp.compare("tril") == 0) {
@@ -746,22 +711,6 @@ int main(int argc, char **argv) {
         std::vector<ObjectType> connectedComponents = createObjectVector(objTRot);
         objComponents.push_back(connectedComponents);
         objInvComponents.push_back(createObjectVector(objTRotInv));
-
-        cout << "-- Computing cavities using digital objects... " << endl;
-        for (auto comp : connectedComponents) {
-            Z3i::DigitalSet set = comp.pointSet();
-            set.assignFromComplement(set);
-            ObjectType obj(dt6_6, set);
-            cavitiesOfEachComponentTril.push_back(createObjectVector(obj));
-        }
-
-        cout << "-- Building corresponding cubical complexes... " << endl;
-        KSpace kRot = initKSpace(imRotTril.domain().lowerBound(), imRotTril.domain().upperBound());
-        for (auto comp : connectedComponents) {
-            CC c(kRot);
-            objectTypeToCubicalComplex(comp, c, kRot);
-            ccVectorTril.push_back(c);
-        }
     }
 
     GradientColorMap<double> gradient(0, 255);
@@ -892,6 +841,7 @@ int main(int argc, char **argv) {
                 cout << "   Trilinear interpolation rotation: " << endl;
 
             cout << "       - Nb connected components               : " << objComponents[i].size() << endl;
+            /*
             int count = 0;
             for (auto cc : (i == 0) ? ccVectorNN : ccVectorTril) {
                 cout << "       Component #" << count << ": " << endl;
@@ -901,12 +851,13 @@ int main(int argc, char **argv) {
                                   : cavitiesOfEachComponentTril[count].size() - 1) << endl;
                 cout << "           Volume: " << objComponents[i][count].size() << endl;
                 count++;
-            }
+            }*/
         }
     } else {
         cout << "   Rotated image: " << endl;
         cout << "       - Nb connected components               : " << objComponents[0].size() << endl;
 
+        /*
         int count = 0;
         for (auto cc : (interp == "nn") ? ccVectorNN : ccVectorTril) {
             cout << "       Component #" << count << ": " << endl;
@@ -916,7 +867,7 @@ int main(int argc, char **argv) {
                                       : cavitiesOfEachComponentTril[count].size() - 1) << endl;
             cout << "           Volume: " << objComponents[0][count].size() << endl;
             count++;
-        }
+        }*/
     }
 
     int appRet = application.exec();
