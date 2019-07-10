@@ -632,14 +632,23 @@ int main(int argc, char **argv) {
 
     std::vector<ObjectType> imObjects = createObjectVector(imObject);
     std::vector<ObjectType> imObjectsInv = createObjectVector(imObjectInv);
-    std::vector<ObjectType26_6> imObjectsInvs26_6 = createObjectVector(imObjectInv26_6);
+    std::vector<ObjectType26_6> imObjectsInv26_6 = createObjectVector(imObjectInv26_6);
     
     cout << "-- Building cubical complexes ";
     KSpace K = initKSpace(image.domain().lowerBound(), image.domain().upperBound());
+
     CC ccImInv(K);
-    getCCFromImage(image, ccImInv, K);
+    getCCFromImage(inverse, ccImInv, K);
     cout << "- done." << endl;
 
+    int imInvB0 = imObjectsInv26_6.size();
+    int imInvB2 = imObjects.size();
+    int imInvB1 = imInvB0 + imInvB2 - ccImInv.euler();
+
+    int imB0 = imInvB2;
+    int imB1 = imInvB1;
+    int imB2 = imInvB0 - 1;
+    
     Viewer3D<> viewer1;
     Viewer3D<> viewer2;
     viewer1.setWindowTitle("NN");
@@ -681,6 +690,9 @@ int main(int argc, char **argv) {
     std::vector<std::vector<ObjectType>> objComponents;
     std::vector<std::vector<ObjectType>> objInvComponents;
 
+    int rotB0NN = -1, rotB1NN = -1, rotB2NN = -1;
+    int rotB0Tril = -1, rotB1Tril = -1, rotB2Tril = -1;
+
     Image threshImRotNN(DTAddIm.domain());
     Image threshImRotTril(DTAddIm.domain());
 
@@ -699,7 +711,23 @@ int main(int argc, char **argv) {
 
         ObjectType objTRot(dt6_6, rotSet);
         ObjectType objTRotInv(dt6_6, rotInvSet);
+        ObjectType26_6 objTRotInv26_6(dt26_6, rotInvSet);
+
         std::vector<ObjectType> connectedComponents = createObjectVector(objTRot);
+        std::vector<ObjectType26_6> rotObjectsInv26_6 = createObjectVector(objTRotInv26_6);
+
+        KSpace kRot = initKSpace(imRotInv.domain().lowerBound(), imRotInv.domain().upperBound());
+        CC ccRotInv(kRot);
+        getCCFromImage(imRotInv, ccRotInv, kRot);
+
+        int invB0 = rotObjectsInv26_6.size();
+        int invB2 = connectedComponents.size();
+        int invB1 = invB0 + invB2 - ccRotInv.euler();
+
+        rotB0NN = invB2;
+        rotB1NN = invB1;
+        rotB2NN = invB0 - 1;
+
         objComponents.push_back(connectedComponents);
         objInvComponents.push_back(createObjectVector(objTRotInv));
     }
@@ -719,8 +747,23 @@ int main(int argc, char **argv) {
 
         ObjectType objTRot(dt6_6, rotSet);
         ObjectType objTRotInv(dt6_6, rotInvSet);
+        ObjectType26_6 objTRotInv26_6(dt26_6, rotInvSet);
 
         std::vector<ObjectType> connectedComponents = createObjectVector(objTRot);
+        std::vector<ObjectType26_6> rotObjectsInv26_6 = createObjectVector(objTRotInv26_6);
+
+        KSpace kRot = initKSpace(imRotInv.domain().lowerBound(), imRotInv.domain().upperBound());
+        CC ccRotInv(kRot);
+        getCCFromImage(imRotInv, ccRotInv, kRot);
+
+        int invB0 = rotObjectsInv26_6.size();
+        int invB2 = connectedComponents.size();
+        int invB1 = invB0 + invB2 - ccRotInv.euler();
+
+        rotB0Tril = invB2;
+        rotB1Tril = invB1;
+        rotB2Tril = invB0 - 1;
+
         objComponents.push_back(connectedComponents);
         objInvComponents.push_back(createObjectVector(objTRotInv));
     }
@@ -834,50 +877,45 @@ int main(int argc, char **argv) {
     cout << "==================================================" << endl << endl;
     cout << "-- Topological informations:" << endl;
     cout << "   Original image: " << endl;
-    cout << "       - Nb connected components               : " << imObjects.size() << endl;
+    cout << "       B0: " << imB0 << endl;
+    cout << "       B1: " << imB1 << endl;
+    cout << "       B2: " << imB2 << endl << endl;
+
+    /*
     int i = 0;
     for (auto connComp : imObjects) {
         cout << "               Volume (component #" << i++ << "): " << connComp.size() << endl;
     }
-
+    
     cout << "       - Nb of cavities                        : " << imObjectsInv.size() - 1 << endl;
     cout << endl;
+    */
 
     if (interp == "all") {
         for (int i = 0; i < 2; i++) {
             if (i == 0)
-                cout << "   Nearest neighbor rotation: " << endl;
+            {
+              cout << "   Nearest neighbor rotation: " << endl;
+              cout << "       B0: " << rotB0NN << endl;
+              cout << "       B1: " << rotB1NN << endl;
+              cout << "       B2: " << rotB2NN << endl << endl;
+            }
+              
             else
-                cout << "   Trilinear interpolation rotation: " << endl;
-
-            cout << "       - Nb connected components               : " << objComponents[i].size() << endl;
-            /*
-            int count = 0;
-            for (auto cc : (i == 0) ? ccVectorNN : ccVectorTril) {
-                cout << "       Component #" << count << ": " << endl;
-                cout << "           Euler characteristic: " << cc.euler() << endl;
-                cout << "           Nb of internal cavities: "
-                     << ((i == 0) ? cavitiesOfEachComponentNN[count].size() - 1
-                                  : cavitiesOfEachComponentTril[count].size() - 1) << endl;
-                cout << "           Volume: " << objComponents[i][count].size() << endl;
-                count++;
-            }*/
+            {
+              cout << "   Trilinear interpolation rotation: " << endl;
+              cout << "       B0: " << rotB0Tril << endl;
+              cout << "       B1: " << rotB1Tril << endl;
+              cout << "       B2: " << rotB2Tril << endl;
+            }
+                
         }
     } else {
         cout << "   Rotated image: " << endl;
         cout << "       - Nb connected components               : " << objComponents[0].size() << endl;
-
-        /*
-        int count = 0;
-        for (auto cc : (interp == "nn") ? ccVectorNN : ccVectorTril) {
-            cout << "       Component #" << count << ": " << endl;
-            cout << "           Euler characteristic (component #" << count << ") : " << cc.euler() << endl;
-            cout << "           Nb of internal cavities: "
-                 << ((interp == "nn") ? cavitiesOfEachComponentNN[count].size() - 1
-                                      : cavitiesOfEachComponentTril[count].size() - 1) << endl;
-            cout << "           Volume: " << objComponents[0][count].size() << endl;
-            count++;
-        }*/
+        cout << "             B0: " << (interp == "nn" ? rotB0NN : rotB0Tril) << endl;  
+        cout << "             B1: " << (interp == "nn" ? rotB1NN : rotB1Tril) << endl;
+        cout << "             B2: " << (interp == "nn" ? rotB2NN : rotB2Tril) << endl;
     }
 
     int appRet = application.exec();
