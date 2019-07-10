@@ -63,12 +63,7 @@ typedef DGtal::Object<DT6_6, Z3i::DigitalSet> ObjectType;
 typedef DGtal::Object<DT26_6, Z3i::DigitalSet> ObjectType26_6;
 
 void usage() {
-    cout << "usage: ./rotation3D angle aX aY aZ visualisation interp [shape] [shape param]" << endl;
-    cout << "visualisation: shape, rot" << endl;
-    cout << "shape: " << endl;
-    cout << "cube: length" << endl;
-    cout << "sph (sphere): radius" << endl;
-    cout << "el (ellipsoid): a, b, c" << endl;
+    cout << "usage: ./eval3D nbAngle nbAxis" << endl;
 }
 
 void findExtrema(DTL2 dtL2, float &min, float &max) {
@@ -272,15 +267,9 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
     double matrixForward[3][3];
     double matrixBackward[3][3];
 
-    cout << "       Computing Rodrigues' rotation matrices... " << endl;
-    cout << "           - Forward";
     computeRotationMatrix(v1, v2, v3, matrixForward, angle);
-    cout << " - done." << endl;
-    cout << "           - Backward";
     computeRotationMatrix(v1, v2, v3, matrixBackward, -angle);
-    cout << " - done." << endl;
 
-    cout << "       Determining rotated domain boundaries by forward rotation ";
     PointVector<3, double> p000 = computeRotation({minX, minY, minZ}, matrixForward);
     PointVector<3, double> p100 = computeRotation({maxX, minY, minZ}, matrixForward);
     PointVector<3, double> p010 = computeRotation({minX, maxY, minZ}, matrixForward);
@@ -312,7 +301,6 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
 
     Z3i::Domain newDomain(lowerBound, upperBound);
     Image imRot(newDomain);
-    cout << "- done." << endl;
 
     double backX = 0;
     double backY = 0;
@@ -324,10 +312,6 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
     for (int z = newDomain.lowerBound()[2]; z <= newDomain.upperBound()[2]; ++z) {
         for (int y = newDomain.lowerBound()[1]; y <= newDomain.upperBound()[1]; ++y) {
             for (int x = newDomain.lowerBound()[0]; x <= newDomain.upperBound()[0]; ++x) {
-                cout << "       Pointwise rotation... " << count << "/" << total << ".\r";
-                cout.flush();
-                count++;
-
                 PointVector<3, double> backP = computeRotation({x, y, z}, matrixBackward);
 
 
@@ -358,8 +342,6 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
             }
         }
     }
-    cout << endl;
-    cout << endl;
     return imRot;
 }
 
@@ -457,27 +439,26 @@ void objectTypeToCubicalComplex(ObjectType obj, CC &cc, KSpace k) {
     cc.close();
 }
 
-int main(int argc, char **argv) {
-    float vecRotation[3];
-    float angle;
-    string interp, shape;
+/*
+bool isCollinear(int x1, int y1, int z1, int x2, int y2, int z2) {
+    
+    if((x1 == 0) && (x2 != 0) || 
 
-    if (argc == 7 || argc == 8 || argc == 9 || argc == 11) {
-        angle = stod(argv[1]);
-        interp = argv[6];
-        vecRotation[0] = stod(argv[2]);
-        vecRotation[1] = stod(argv[3]);
-        vecRotation[2] = stod(argv[4]);
+    double a = ((double) x1 / (double) x2);
+    double b = ((double) y1 / (double) y2);
+    double c = ((double) z1 / (double) z2);
+
+    return (a == b) && (b == c);
+}*/
+
+int main(int argc, char **argv) {
+    int nbAngle, nbAxis;
+
+    if (argc == 3) {
+        nbAngle = stoi(argv[1]);
+        nbAxis = stoi(argv[2]);
     } else {
         usage();
-        return 0;
-    }
-
-    if ((interp.compare("all") != 0) &&
-        interp.compare("nn") != 0 &&
-        interp.compare("tril") != 0) {
-        trace.error();
-        cout << "invalid interpolation argument: " << interp << endl;
         return 0;
     }
 
@@ -489,143 +470,34 @@ int main(int argc, char **argv) {
     DT26_6 dt26_6(adj26, adj6, JORDAN_DT);
 
     cout << endl;
-    QApplication application(argc, argv);
-    string inputFilename = "../samples/bunny.vol";
-    cout << "- Rotation on shape " << inputFilename
-         << " with " << angle << " rad angle and axis vector ("
-         << vecRotation[0] << ","
-         << vecRotation[1] << ","
-         << vecRotation[2] << ")."
-         << endl;
 
-    cout << "- Interpolation method chosen: " << interp << "." << endl << endl;
+    PointVector<3, int> lowerBound = {-20, -20, -20};
+    PointVector<3, int> upperBound = {19, 19, 19};
+    Z3i::Domain domain(lowerBound, upperBound);
+    Image image(domain);
 
-    Image image = VolReader<Image>::importVol(inputFilename);
-    Z3i::Domain domain(image.domain().lowerBound(), image.domain().upperBound());
 
-    if (argc == 8 || argc == 9 || argc == 11) {
-        shape = argv[7];
-        PointVector<3, int> lowerBound = {-20, -20, -20};
-        PointVector<3, int> upperBound = {19, 19, 19};
-
-        domain = Z3i::Domain(lowerBound, upperBound);
-        image = Image(domain);
-
-        if (shape == "cube" && (argc == 8 || argc == 9)) {
-            double cubeD;
-            if (argc == 8)
-                cubeD = 1.5;
-            else
-                cubeD = stod(argv[8]);
-
-            for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
-                for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
-                    for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
-                        if (x <= cubeD && y <= cubeD && z <= cubeD)
-                            if (x > -cubeD && y > -cubeD && z > -cubeD)
-                                image.setValue({x, y, z}, 150);
-                            else
-                                image.setValue({x, y, z}, 0);
-                    }
-                }
-            }
-        } else if (shape == "sph" && (argc == 8 || argc == 9)) {
-            double r;
-            if (argc == 8)
-                r = 10;
-            else
-                r = stod(argv[8]);
-
-            for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
-                for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
-                    for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
-                        if (distanceToPoint(x, y, z, 0, 0, 0) <= r)
-                            image.setValue({x, y, z}, 150);
-                        else
-                            image.setValue({x, y, z}, 0);
-                    }
-                }
-            }
-        } else if (shape == "el" && (argc == 8 || argc == 11)) {
-            double a, b, c;
-            if (argc == 8)
-                a = 10, b = 15, c = 7;
-            else {
-                a = stod(argv[8]);
-                b = stod(argv[9]);
-                c = stod(argv[10]);
-            }
-            for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
-                for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
-                    for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
-                        if (isInsideEllipsoid(a, b, c, x, y, z))
-                            image.setValue({x, y, z}, 150);
-                        else
-                            image.setValue({x, y, z}, 0);
-                    }
-                }
-            }
-        } else if (shape == "plane" && argc == 8) {
-            for (int z = domain.lowerBound()[2] + 3; z <= domain.upperBound()[2] - 3; ++z) {
-                for (int y = domain.lowerBound()[1] + 3; y <= domain.upperBound()[1] - 3; ++y) {
-                    for (int x = domain.lowerBound()[0] + 3; x <= domain.upperBound()[0] - 3; ++x) {
-                        if ((2*x + y + z) < 5  && (2*x + y + z) > -5 )
-                            image.setValue({x, y, z}, 150);
-                        else
-                            image.setValue({x, y, z}, 0);
-                    }
-                }
-            }
-        } else {
-            trace.error();
-            cout << " invalid shape: " << argv[7] << endl;
-            return 0;
-        }
-    }
-
-    if (strcmp(argv[5], "shape") == 0) {
-        GradientColorMap<double> gradient(0, 255);
-        initGrad(gradient);
-
-        Viewer3D<> viewer1;
-        viewer1 << SetMode3D((*(domain.begin())).className(), "PavingWired");
-        for (Z3i::Domain::ConstIterator it = domain.begin(), itend = domain.end();
-             it != itend;
-             ++it) {
-
-            double valDist = image((*it));
-            if (valDist > 0) {
-                Color c = gradient(valDist);
-                viewer1 << CustomColors3D(Color((float) (c.red()),
-                                                (float) (c.green()),
-                                                (float) (c.blue(), 255)),
-                                          Color((float) (c.red()),
-                                                (float) (c.green()),
-                                                (float) (c.blue()), 255));
-                viewer1 << *it;
+    for (int z = domain.lowerBound()[2] + 3; z <= domain.upperBound()[2] - 3; ++z) {
+        for (int y = domain.lowerBound()[1] + 3; y <= domain.upperBound()[1] - 3; ++y) {
+            for (int x = domain.lowerBound()[0] + 3; x <= domain.upperBound()[0] - 3; ++x) {
+                if ((2*x + y + z) < 5  && (2*x + y + z) > -5 )
+                    image.setValue({x, y, z}, 150);
+                else
+                    image.setValue({x, y, z}, 0);
             }
         }
-        viewer1 << Viewer3D<>::updateDisplay;
-        viewer1.show();
-        int appRet = application.exec();
-        return appRet;
-    }
+    }    
 
-    cout << "-- Thresholding ";
+    cout << "-- Preprocessing the original image..." << endl;
     Image thresholdedIm(domain);
     thresholdImage(image, thresholdedIm);
-    cout << "- done." << endl;
 
-    cout << "-- Inversing ";
     Image inverse(domain);
     inverseImage(thresholdedIm, inverse);
-    cout << "- done." << endl;
 
-    cout << "-- Building digital sets..." << endl;
     Z3i::DigitalSet imSet = createDigitalSetFromImage(image);
     Z3i::DigitalSet imSetInverse = createDigitalSetFromImage(inverse);
 
-    cout << "-- Building corresponding objects and computing connected components..." << endl;
     ObjectType imObject(dt6_6, imSet);
     ObjectType imObjectInv(dt6_6, imSetInverse);
     ObjectType26_6 imObjectInv26_6(dt26_6, imSetInverse);
@@ -634,12 +506,10 @@ int main(int argc, char **argv) {
     std::vector<ObjectType> imObjectsInv = createObjectVector(imObjectInv);
     std::vector<ObjectType26_6> imObjectsInv26_6 = createObjectVector(imObjectInv26_6);
     
-    cout << "-- Building cubical complexes ";
     KSpace K = initKSpace(image.domain().lowerBound(), image.domain().upperBound());
 
     CC ccImInv(K);
     getCCFromImage(inverse, ccImInv, K);
-    cout << "- done." << endl;
 
     int imInvB0 = imObjectsInv26_6.size();
     int imInvB2 = imObjects.size();
@@ -648,90 +518,124 @@ int main(int argc, char **argv) {
     int imB0 = imInvB2;
     int imB1 = imInvB1;
     int imB2 = imInvB0 - 1;
-    
-    Viewer3D<> viewer1;
-    Viewer3D<> viewer2;
-    viewer1.setWindowTitle("NN");
-    viewer2.setWindowTitle("Trilinear");
 
-    cout << "-- Computing distance transforms " << endl;
-    cout << "     - Foreground ";
     Predicate pIm(thresholdedIm, 0);
     DTL2 dtL2(&domain, &pIm, &Z3i::l2Metric);
-    cout << "- done" << endl;
 
-    cout << "     - Background ";
     Predicate pInv(inverse, 0);
     DTL2 dtL2Inv(&domain, &pInv, &Z3i::l2Metric);
-    cout << "- done." << endl;
 
     float min = 0, max = 0, minInv = 0, maxInv = 0;
     Image dtL2Im(domain), dtL2ImInv(domain), DTAddIm(domain);
 
-    cout << "-- Converting DTL2 to Image ";
     findExtrema(dtL2, min, max);
     DTToImage(dtL2, max, dtL2Im);
     findExtrema(dtL2Inv, minInv, maxInv);
     DTToImage(dtL2Inv, maxInv, dtL2ImInv);
-    cout << "- done." << endl;
 
-    cout << "-- Processing image DT ";
     processDT(dtL2Im, true);
     processDT(dtL2ImInv, false);
-    cout << "- done." << endl;
 
-    cout << "-- Merging both DTs ";
     addDTImages(dtL2Im, dtL2ImInv, DTAddIm);
-    cout << "- done." << endl;
 
     Image imRotNN = DTAddIm;
     Image imRotTril = DTAddIm;
 
-    std::vector<std::vector<ObjectType>> objComponents;
-    std::vector<std::vector<ObjectType>> objInvComponents;
-
-    int rotB0NN = -1, rotB1NN = -1, rotB2NN = -1;
-    int rotB0Tril = -1, rotB1Tril = -1, rotB2Tril = -1;
-
     Image threshImRotNN(DTAddIm.domain());
     Image threshImRotTril(DTAddIm.domain());
 
-    if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
-        cout << "-- Computing rotation using nearest neighbor interpolation" << endl;
-        imRotNN = rotateBackward(DTAddIm, angle, vecRotation[0], vecRotation[1], vecRotation[2], "nn");
-        threshImRotNN = Image(imRotNN.domain());
-        thresholdDTImage(imRotNN, threshImRotNN);
+    cout << "-- Computing rotations..." << endl;
 
-        Image imRotInv(threshImRotNN.domain());
-        inverseImage(threshImRotNN, imRotInv);
+    std::vector<std::vector<int>> usedAxis;
 
-        cout << "-- Building corresponding digital objects..." << endl;
-        Z3i::DigitalSet rotSet = createDigitalSetFromImage(threshImRotNN);
-        Z3i::DigitalSet rotInvSet = createDigitalSetFromImage(imRotInv);
+    for(int c = 2; c < nbAxis; c++) {
+        for(int b = 1; b < c; b++) {
+            for(int a = 0; a < b; a++) {
+                /*
+                for(auto tab : usedAxis) {
+                    if(isCollinear(tab[0], tab[1], tab[2], a, b, c))
+                        continue;
+                }*/
 
-        ObjectType objTRot(dt6_6, rotSet);
-        ObjectType objTRotInv(dt6_6, rotInvSet);
-        ObjectType26_6 objTRotInv26_6(dt26_6, rotInvSet);
+                int rotB0NN = -1, rotB1NN = -1, rotB2NN = -1;
+                int rotB0Tril = -1, rotB1Tril = -1, rotB2Tril = -1;
 
-        std::vector<ObjectType> connectedComponents = createObjectVector(objTRot);
-        std::vector<ObjectType26_6> rotObjectsInv26_6 = createObjectVector(objTRotInv26_6);
+                // Nearest Neighbor rotation
+                imRotNN = rotateBackward(DTAddIm, 0.7, a, b, c, "nn");
+                threshImRotNN = Image(imRotNN.domain());
+                thresholdDTImage(imRotNN, threshImRotNN);
 
-        KSpace kRot = initKSpace(imRotInv.domain().lowerBound(), imRotInv.domain().upperBound());
-        CC ccRotInv(kRot);
-        getCCFromImage(imRotInv, ccRotInv, kRot);
+                Image imRotInv(threshImRotNN.domain());
+                inverseImage(threshImRotNN, imRotInv);
 
-        int invB0 = rotObjectsInv26_6.size();
-        int invB2 = connectedComponents.size();
-        int invB1 = invB0 + invB2 - ccRotInv.euler();
+                Z3i::DigitalSet rotSet = createDigitalSetFromImage(threshImRotNN);
+                Z3i::DigitalSet rotInvSet = createDigitalSetFromImage(imRotInv);
 
-        rotB0NN = invB2;
-        rotB1NN = invB1;
-        rotB2NN = invB0 - 1;
+                ObjectType objTRotNN(dt6_6, rotSet);
+                ObjectType objTRotInvNN(dt6_6, rotInvSet);
+                ObjectType26_6 objTRotInv26_6NN(dt26_6, rotInvSet);
 
-        objComponents.push_back(connectedComponents);
-        objInvComponents.push_back(createObjectVector(objTRotInv));
+                std::vector<ObjectType> connectedComponents = createObjectVector(objTRotNN);
+                std::vector<ObjectType26_6> rotObjectsInv26_6 = createObjectVector(objTRotInv26_6NN);
+
+                KSpace kRotNN = initKSpace(imRotInv.domain().lowerBound(), imRotInv.domain().upperBound());
+                CC ccRotInvNN(kRotNN);
+                getCCFromImage(imRotInv, ccRotInvNN, kRotNN);
+
+                int invB0 = rotObjectsInv26_6.size();
+                int invB2 = connectedComponents.size();
+                int invB1 = invB0 + invB2 - ccRotInvNN.euler();
+
+                rotB0NN = invB2;
+                rotB1NN = invB1;
+                rotB2NN = invB0 - 1;
+
+                if((rotB0NN != imB0) || (rotB1NN != imB1) || (rotB2NN != imB2))
+                    cout << "NN: Axis: " << a << ", " << b << ", " << c << ": b0 = " << rotB0NN << ", b1 = " << rotB1NN << ", b2 = " << rotB2NN << endl;
+
+                // Trilinear interpolation rotation
+                imRotTril = rotateBackward(DTAddIm, 0.7, a, b, c, "tril");
+                threshImRotTril = Image(imRotTril.domain());
+                thresholdDTImage(imRotTril, threshImRotTril);
+
+                Image imRotInvTril(threshImRotTril.domain());
+                inverseImage(threshImRotTril, imRotInvTril);
+
+                Z3i::DigitalSet rotSetTril = createDigitalSetFromImage(threshImRotTril);
+                Z3i::DigitalSet rotInvSetTril = createDigitalSetFromImage(imRotInvTril);
+
+                ObjectType objTRotTril(dt6_6, rotSetTril);
+                ObjectType objTRotInvTril(dt6_6, rotInvSetTril);
+                ObjectType26_6 objTRotInv26_6Tril(dt26_6, rotInvSetTril);
+
+                std::vector<ObjectType> connectedComponentsTril = createObjectVector(objTRotTril);
+                std::vector<ObjectType26_6> rotObjectsInv26_6Tril = createObjectVector(objTRotInv26_6Tril);
+
+                KSpace kRotTril = initKSpace(imRotInvTril.domain().lowerBound(), imRotTril.domain().upperBound());
+                CC ccRotInvTril(kRotTril);
+                getCCFromImage(imRotInvTril, ccRotInvTril, kRotTril);
+
+                invB0 = rotObjectsInv26_6Tril.size();
+                invB2 = connectedComponentsTril.size();
+                invB1 = invB0 + invB2 - ccRotInvTril.euler();
+
+                rotB0Tril = invB2;
+                rotB1Tril = invB1;
+                rotB2Tril = invB0 - 1;
+            
+                if((rotB0Tril != imB0) || (rotB1Tril != imB1) || (rotB2Tril != imB2))
+                    cout << "TRIL: Axis: " << a << ", " << b << ", " << c << ": b0 = " << rotB0Tril << ", b1 = " << rotB1Tril << ", b2 = " << rotB2Tril << endl;
+
+                connectedComponents.clear();
+                rotObjectsInv26_6.clear();
+                std::vector<int>tab = {a, b, c};
+                usedAxis.push_back(tab);
+            }      
+        }
     }
+    return 0;
 
+    /*
     if (interp.compare("all") == 0 || interp.compare("tril") == 0) {
         cout << "-- Computing rotation using trilinear interpolation" << endl;
         imRotTril = rotateBackward(DTAddIm, angle, vecRotation[0], vecRotation[1], vecRotation[2], "tril");
@@ -889,7 +793,7 @@ int main(int argc, char **argv) {
     
     cout << "       - Nb of cavities                        : " << imObjectsInv.size() - 1 << endl;
     cout << endl;
-    */
+    
 
     if (interp == "all") {
         for (int i = 0; i < 2; i++) {
@@ -921,4 +825,5 @@ int main(int argc, char **argv) {
     int appRet = application.exec();
     cout << endl;
     return appRet;
+    */
 }
