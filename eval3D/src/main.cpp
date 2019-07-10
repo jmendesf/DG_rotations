@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream> 
 #include "DGtal/base/Common.h"
 #include "DGtal/kernel/SpaceND.h"
 #include "DGtal/kernel/domains/HyperRectDomain.h"
@@ -439,17 +440,9 @@ void objectTypeToCubicalComplex(ObjectType obj, CC &cc, KSpace k) {
     cc.close();
 }
 
-/*
-bool isCollinear(int x1, int y1, int z1, int x2, int y2, int z2) {
-    
-    if((x1 == 0) && (x2 != 0) || 
-
-    double a = ((double) x1 / (double) x2);
-    double b = ((double) y1 / (double) y2);
-    double c = ((double) z1 / (double) z2);
-
-    return (a == b) && (b == c);
-}*/
+bool isCoprime(int x, int y, int z) {
+    return std::__gcd(x, std::__gcd(y, z)) == 1;
+}
 
 int main(int argc, char **argv) {
     int nbAngle, nbAxis;
@@ -465,6 +458,8 @@ int main(int argc, char **argv) {
     Adj6 adj6;
     Adj18 adj18;
     Adj26 adj26;
+    std::ofstream outputFile;
+    outputFile.open("../output/eval_logs.txt");
 
     DT6_6 dt6_6(adj6, adj6, JORDAN_DT);
     DT26_6 dt26_6(adj26, adj6, JORDAN_DT);
@@ -475,7 +470,6 @@ int main(int argc, char **argv) {
     PointVector<3, int> upperBound = {19, 19, 19};
     Z3i::Domain domain(lowerBound, upperBound);
     Image image(domain);
-
 
     for (int z = domain.lowerBound()[2] + 3; z <= domain.upperBound()[2] - 3; ++z) {
         for (int y = domain.lowerBound()[1] + 3; y <= domain.upperBound()[1] - 3; ++y) {
@@ -519,6 +513,14 @@ int main(int argc, char **argv) {
     int imB1 = imInvB1;
     int imB2 = imInvB0 - 1;
 
+    outputFile << "-- Original shape : plane.\n";
+    outputFile << "         B0: " << imB0 << "\n";
+    outputFile << "         B1: " << imB1 << "\n";
+    outputFile << "         B2: " << imB2 << "\n";
+    outputFile << "===============================\n\n";
+    outputFile << "-- Non topologically respectful rotations: \n";
+
+
     Predicate pIm(thresholdedIm, 0);
     DTL2 dtL2(&domain, &pIm, &Z3i::l2Metric);
 
@@ -543,96 +545,96 @@ int main(int argc, char **argv) {
 
     Image threshImRotNN(DTAddIm.domain());
     Image threshImRotTril(DTAddIm.domain());
-
+    int rotIndex = 1;
+    double angleStep = (M_PI / 4) / nbAngle;
     cout << "-- Computing rotations..." << endl;
-
-    std::vector<std::vector<int>> usedAxis;
 
     for(int c = 2; c < nbAxis; c++) {
         for(int b = 1; b < c; b++) {
             for(int a = 0; a < b; a++) {
-                /*
-                for(auto tab : usedAxis) {
-                    if(isCollinear(tab[0], tab[1], tab[2], a, b, c))
-                        continue;
-                }*/
+                
+                if(!isCoprime(a, b, c))
+                    continue;
 
-                int rotB0NN = -1, rotB1NN = -1, rotB2NN = -1;
-                int rotB0Tril = -1, rotB1Tril = -1, rotB2Tril = -1;
+                for(double angle = 0.1; angle < ((M_PI / 4)+ 0.25); angle += angleStep) {
+                    int rotB0NN = -1, rotB1NN = -1, rotB2NN = -1;
+                    int rotB0Tril = -1, rotB1Tril = -1, rotB2Tril = -1;
 
-                // Nearest Neighbor rotation
-                imRotNN = rotateBackward(DTAddIm, 0.7, a, b, c, "nn");
-                threshImRotNN = Image(imRotNN.domain());
-                thresholdDTImage(imRotNN, threshImRotNN);
+                    // Nearest Neighbor rotation
+                    imRotNN = rotateBackward(DTAddIm, angle, a, b, c, "nn");
+                    threshImRotNN = Image(imRotNN.domain());
+                    thresholdDTImage(imRotNN, threshImRotNN);
 
-                Image imRotInv(threshImRotNN.domain());
-                inverseImage(threshImRotNN, imRotInv);
+                    Image imRotInv(threshImRotNN.domain());
+                    inverseImage(threshImRotNN, imRotInv);
 
-                Z3i::DigitalSet rotSet = createDigitalSetFromImage(threshImRotNN);
-                Z3i::DigitalSet rotInvSet = createDigitalSetFromImage(imRotInv);
+                    Z3i::DigitalSet rotSet = createDigitalSetFromImage(threshImRotNN);
+                    Z3i::DigitalSet rotInvSet = createDigitalSetFromImage(imRotInv);
 
-                ObjectType objTRotNN(dt6_6, rotSet);
-                ObjectType objTRotInvNN(dt6_6, rotInvSet);
-                ObjectType26_6 objTRotInv26_6NN(dt26_6, rotInvSet);
+                    ObjectType objTRotNN(dt6_6, rotSet);
+                    ObjectType objTRotInvNN(dt6_6, rotInvSet);
+                    ObjectType26_6 objTRotInv26_6NN(dt26_6, rotInvSet);
 
-                std::vector<ObjectType> connectedComponents = createObjectVector(objTRotNN);
-                std::vector<ObjectType26_6> rotObjectsInv26_6 = createObjectVector(objTRotInv26_6NN);
+                    std::vector<ObjectType> connectedComponents = createObjectVector(objTRotNN);
+                    std::vector<ObjectType26_6> rotObjectsInv26_6 = createObjectVector(objTRotInv26_6NN);
 
-                KSpace kRotNN = initKSpace(imRotInv.domain().lowerBound(), imRotInv.domain().upperBound());
-                CC ccRotInvNN(kRotNN);
-                getCCFromImage(imRotInv, ccRotInvNN, kRotNN);
+                    KSpace kRotNN = initKSpace(imRotInv.domain().lowerBound(), imRotInv.domain().upperBound());
+                    CC ccRotInvNN(kRotNN);
+                    getCCFromImage(imRotInv, ccRotInvNN, kRotNN);
 
-                int invB0 = rotObjectsInv26_6.size();
-                int invB2 = connectedComponents.size();
-                int invB1 = invB0 + invB2 - ccRotInvNN.euler();
+                    int invB0 = rotObjectsInv26_6.size();
+                    int invB2 = connectedComponents.size();
+                    int invB1 = invB0 + invB2 - ccRotInvNN.euler();
 
-                rotB0NN = invB2;
-                rotB1NN = invB1;
-                rotB2NN = invB0 - 1;
+                    rotB0NN = invB2;
+                    rotB1NN = invB1;
+                    rotB2NN = invB0 - 1;
 
-                if((rotB0NN != imB0) || (rotB1NN != imB1) || (rotB2NN != imB2))
-                    cout << "NN: Axis: " << a << ", " << b << ", " << c << ": b0 = " << rotB0NN << ", b1 = " << rotB1NN << ", b2 = " << rotB2NN << endl;
+                    if((rotB0NN != imB0) || (rotB1NN != imB1) || (rotB2NN != imB2))
+                        outputFile << "[#" << rotIndex <<  "] - NN - Axis: (" << a << ", " << b << ", " << c << ") - Angle: " << angle << " - b0 = " << rotB0NN << ", b1 = " << rotB1NN << ", b2 = " << rotB2NN << "\n";
 
-                // Trilinear interpolation rotation
-                imRotTril = rotateBackward(DTAddIm, 0.7, a, b, c, "tril");
-                threshImRotTril = Image(imRotTril.domain());
-                thresholdDTImage(imRotTril, threshImRotTril);
+                    // Trilinear interpolation rotation
+                    imRotTril = rotateBackward(DTAddIm, angle, a, b, c, "tril");
+                    threshImRotTril = Image(imRotTril.domain());
+                    thresholdDTImage(imRotTril, threshImRotTril);
 
-                Image imRotInvTril(threshImRotTril.domain());
-                inverseImage(threshImRotTril, imRotInvTril);
+                    Image imRotInvTril(threshImRotTril.domain());
+                    inverseImage(threshImRotTril, imRotInvTril);
 
-                Z3i::DigitalSet rotSetTril = createDigitalSetFromImage(threshImRotTril);
-                Z3i::DigitalSet rotInvSetTril = createDigitalSetFromImage(imRotInvTril);
+                    Z3i::DigitalSet rotSetTril = createDigitalSetFromImage(threshImRotTril);
+                    Z3i::DigitalSet rotInvSetTril = createDigitalSetFromImage(imRotInvTril);
 
-                ObjectType objTRotTril(dt6_6, rotSetTril);
-                ObjectType objTRotInvTril(dt6_6, rotInvSetTril);
-                ObjectType26_6 objTRotInv26_6Tril(dt26_6, rotInvSetTril);
+                    ObjectType objTRotTril(dt6_6, rotSetTril);
+                    ObjectType objTRotInvTril(dt6_6, rotInvSetTril);
+                    ObjectType26_6 objTRotInv26_6Tril(dt26_6, rotInvSetTril);
 
-                std::vector<ObjectType> connectedComponentsTril = createObjectVector(objTRotTril);
-                std::vector<ObjectType26_6> rotObjectsInv26_6Tril = createObjectVector(objTRotInv26_6Tril);
+                    std::vector<ObjectType> connectedComponentsTril = createObjectVector(objTRotTril);
+                    std::vector<ObjectType26_6> rotObjectsInv26_6Tril = createObjectVector(objTRotInv26_6Tril);
 
-                KSpace kRotTril = initKSpace(imRotInvTril.domain().lowerBound(), imRotTril.domain().upperBound());
-                CC ccRotInvTril(kRotTril);
-                getCCFromImage(imRotInvTril, ccRotInvTril, kRotTril);
+                    KSpace kRotTril = initKSpace(imRotInvTril.domain().lowerBound(), imRotTril.domain().upperBound());
+                    CC ccRotInvTril(kRotTril);
+                    getCCFromImage(imRotInvTril, ccRotInvTril, kRotTril);
 
-                invB0 = rotObjectsInv26_6Tril.size();
-                invB2 = connectedComponentsTril.size();
-                invB1 = invB0 + invB2 - ccRotInvTril.euler();
+                    invB0 = rotObjectsInv26_6Tril.size();
+                    invB2 = connectedComponentsTril.size();
+                    invB1 = invB0 + invB2 - ccRotInvTril.euler();
 
-                rotB0Tril = invB2;
-                rotB1Tril = invB1;
-                rotB2Tril = invB0 - 1;
-            
-                if((rotB0Tril != imB0) || (rotB1Tril != imB1) || (rotB2Tril != imB2))
-                    cout << "TRIL: Axis: " << a << ", " << b << ", " << c << ": b0 = " << rotB0Tril << ", b1 = " << rotB1Tril << ", b2 = " << rotB2Tril << endl;
+                    rotB0Tril = invB2;
+                    rotB1Tril = invB1;
+                    rotB2Tril = invB0 - 1;
+                
+                    if((rotB0Tril != imB0) || (rotB1Tril != imB1) || (rotB2Tril != imB2))
+                        outputFile << "[#" << rotIndex <<  "] - Tril - Axis: (" << a << ", " << b << ", " << c << ") - Angle: " << angle << " - b0 = " << rotB0Tril << ", b1 = " << rotB1Tril << ", b2 = " << rotB2Tril << "\n";
 
-                connectedComponents.clear();
-                rotObjectsInv26_6.clear();
-                std::vector<int>tab = {a, b, c};
-                usedAxis.push_back(tab);
+                    connectedComponents.clear();
+                    rotObjectsInv26_6.clear();
+                    rotIndex++;
+                }
             }      
         }
     }
+    outputFile.close();
+
     return 0;
 
     /*
