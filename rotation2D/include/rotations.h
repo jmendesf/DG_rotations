@@ -7,6 +7,7 @@ enum INTERPOLATION_METHOD {
     NEAREST_NEIGHBOR,
     BILINEAR_INTERPOLATION,
     BICUBIC_INTERPOLATION,
+    MARCHING_SQUARES,
     ALL
 };
 
@@ -20,3 +21,5 @@ float computeBilinearInterpolation(Image image, float x, float y);
 float cubicHermite(float A, float B, float C, float D, float t);
 
 float computeBicubicInterpolation(Image image, float x, float y);
+
+unsigned int getBitsFromPixels(Image image, float x, float y);
