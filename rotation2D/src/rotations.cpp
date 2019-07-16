@@ -98,6 +98,103 @@ float computeBicubicInterpolation(Image image, float x, float y) {
     return cubicHermite(col0, col1, col2, col3, yFract);
 }
 
+unsigned int getBitsFromPixels(Image image, float x, float y) {
+    unsigned int bits = 0;
+    
+    int x0 = (int)std::floor(x);
+    int y0 = (int)std::floor(y);
+    int x1 = x0 + 1;
+    int y1 = y0 + 1;
+
+    int i0 = image.operator()({x0,y0});
+    int i1 = image.operator()({x1,y0});
+    int i2 = image.operator()({x1,y1});
+    int i3 = image.operator()({x0,y1});
+
+    if(i0 > 0)
+        bits |= 1;
+    if(i1 > 0)
+        bits |= 2;
+    if(i2 > 0)
+        bits |= 4;
+    if(i3 > 0)
+        bits |= 8;
+
+    return bits;
+}
+
+int computeMarchingSquaresValue(Image image, float x, float y) {
+    unsigned int bits = getBitsFromPixels(image, x, y);
+    int value = 0;
+    float xo = x - (int)x;
+    float yo = y - (int)y;
+
+    switch(bits){
+        case 0:
+            break;
+        case 15:
+            value = 250;
+            break;
+        case 14:
+            if(yo > (-xo + 0.5))
+                value = 250;
+            break;
+        case 13:
+            if(yo > (xo - 0.5))
+                value = 250;
+            break;
+        case 12:
+            if(yo > 0.5)
+                value = 250;
+            break;
+        case 11:
+            if(yo < (-xo + 1.5))
+                value = 250;
+            break;
+        case 10:
+            if((yo > (xo + 0.5)) || (yo < (xo - 0.5)))
+                value = 250;
+            break;
+        case 9:
+            if(xo < 0.5)
+                value = 250;
+            break;    
+        case 8:
+            if(yo > (xo + 0.5))
+                value = 250;
+            break;
+        case 7:
+            if(yo < (xo + 0.5))
+                value = 250;
+            break;
+        case 6:
+            if(xo > 0.5)
+                value = 250;
+            break;
+        case 5:
+            if((yo < (xo + 0.5)) && (yo > (xo - 0.5)))
+                value = 250;
+            break;
+        case 4:
+            if(yo > (-xo + 1.5))
+                value = 250;
+            break;
+        case 3:
+            if(yo < 0.5)
+                value = 250;
+            break;
+        case 2:
+            if(yo < (xo - 0.5))
+                value = 250;
+            break;
+        case 1:
+            if(yo < (xo - 0.5))
+                value = 250;
+            break;    
+    }
+    return value;
+}
+
 // Compute rotation with nearest neighbor choice of pixel value
 Image rotateBackward(Image image, float angle, INTERPOLATION_METHOD method) {
     // domain's extrema
@@ -161,16 +258,16 @@ Image rotateBackward(Image image, float angle, INTERPOLATION_METHOD method) {
             if (((int) backY >= image.domain().upperBound()[1]) || ((int) backY <= image.domain().lowerBound()[1]))
                 continue;
 
-
             // Set the value in the rotated Image
             // Nearest neighbor
             if (method == NEAREST_NEIGHBOR)
                 rotIm.setValue({x, y}, image.operator()({int(backX), int(backY)}));
             else if (method == BILINEAR_INTERPOLATION)
                 rotIm.setValue({x, y}, computeBilinearInterpolation(image, backX, backY));
-            else if (method == BICUBIC_INTERPOLATION) {
+            else if (method == BICUBIC_INTERPOLATION)
                 rotIm.setValue({x, y}, computeBicubicInterpolation(image, backX, backY));
-            }
+            else if (method == MARCHING_SQUARES)
+                rotIm.setValue({x, y}, computeMarchingSquaresValue(image, backX, backY));
         }
     }
     return rotIm;

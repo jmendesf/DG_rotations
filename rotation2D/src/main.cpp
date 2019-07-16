@@ -8,7 +8,6 @@
 #include "../include/digital_objects.h"
 #include "DGtal/io/writers/PGMWriter.h"
 
-
 using std::cout;
 using std::endl;
 using std::string;
@@ -61,7 +60,7 @@ void send1CellsVectorToBoard(std::vector<Z2i::SCell> bdryV, Board2D& board)
 
 }
 
-void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int minThresh, int maxThresh) {
+void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int minThresh, int maxThresh) {    
     Adj4 adj4;
     Adj8 adj8;
     DT4_8 dt4_8(adj4, adj8, JORDAN_DT);
@@ -160,6 +159,8 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
     Image imNN = imAddDTL;
     Image imBil = imAddDTL;
     Image imBic = imAddDTL;
+    Image imMS = imAddDTL;
+
     std::vector<CC> cCVector;
     std::vector<CC> cCInvVector;
     std::vector<std::vector<ObjectType>> objComponents;
@@ -291,6 +292,14 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
         cout << "- done." << endl;
     }
 
+    if((method == MARCHING_SQUARES) || (method == ALL)) {
+        cout << "-- Computing rotation using marching squares... " << endl;
+        imMS = rotateBackward(image, angle, MARCHING_SQUARES);
+        path = "../output/rotation_MS/ms.eps";
+        saveImage(board, imMS, 0, 255, path);
+        cout << "   Output saved as " << path << endl;
+    }
+
     cout << endl;
     cout << "============================================================" << endl;
     cout << endl;
@@ -353,6 +362,7 @@ void processImage(Image &image, float angle, INTERPOLATION_METHOD method, int mi
 }
 
 int main(int argc, char **argv) {
+
     if (argc == 2)
         if (strcmp(argv[1], "help") == 0) {
             usage(true);
@@ -371,13 +381,14 @@ int main(int argc, char **argv) {
     int minThresh = (argc == 4) ? 254 : std::stoi(argv[4]);
     int maxThresh = (argc == 4) ? 255 : std::stoi(argv[5]);
 
-
     // process depending on the user's choice
     if (strcmp(argv[3], "bli") == 0)
         processImage(image, -std::stof(argv[2]), BILINEAR_INTERPOLATION, minThresh, maxThresh);
     else if (strcmp(argv[3], "nn") == 0)
         processImage(image, -std::stof(argv[2]), NEAREST_NEIGHBOR, minThresh, maxThresh);
     else if (strcmp(argv[3], "bic") == 0)
+        processImage(image, -std::stof(argv[2]), BICUBIC_INTERPOLATION, minThresh, maxThresh);
+    else if (strcmp(argv[3], "ms") == 0)
         processImage(image, -std::stof(argv[2]), BICUBIC_INTERPOLATION, minThresh, maxThresh);
     else if (strcmp(argv[3], "all") == 0)
         processImage(image, -std::stof(argv[2]), ALL, minThresh, maxThresh);
