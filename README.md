@@ -95,9 +95,9 @@ The `rotation_NN/`, `rotation_BIL/` and `rotation_BIC/` folders contain respecti
 
 ### TODO
 
-- [ ] Compute Betti numbers using 2 CCs (foreground and background)
-- [ ] Compute multiple rotations with various angle/axis
-- [ ] Extract all results 
-- [ ] Implement rotation using Marching Squares (2D) 
+- [x] Compute Betti numbers using 2 CCs (foreground and background)
+- [x] Compute multiple rotations with various angle/axis
+- [x] Extract all results 
+- [x] Implement rotation using Marching Squares (2D) 
 - [ ] Implement rotaiton using Marching Cubes (3D)
 - [ ] Compare Marching methods to (bi/tri)linear
