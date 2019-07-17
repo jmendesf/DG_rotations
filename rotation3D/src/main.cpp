@@ -87,7 +87,7 @@ void inverseImage(Image src, Image &dst) {
     for (int z = src.domain().lowerBound()[2]; z <= src.domain().upperBound()[2]; z++)
         for (int y = src.domain().lowerBound()[1]; y <= src.domain().upperBound()[1]; y++)
             for (int x = src.domain().lowerBound()[0]; x <= src.domain().upperBound()[0]; x++)
-                dst.setValue({x, y, z}, 255 - src.operator()({x, y, z}));
+                dst.setValue({x, y, z}, 255 - src({x, y, z}));
 }
 
 void DTToImage(DTL2 dtL2, double maxValue, Image &dst) {
@@ -237,14 +237,14 @@ void computeTrilinearRotation(double x, double y, double z, double &value, Image
     double yD = y - y0;
     double zD = z - z0;
 
-    double c000 = srcImage.operator()({x0, y0, z0});
-    double c001 = srcImage.operator()({x0, y0, z1});
-    double c010 = srcImage.operator()({x0, y1, z0});
-    double c011 = srcImage.operator()({x0, y1, z1});
-    double c100 = srcImage.operator()({x1, y0, z0});
-    double c101 = srcImage.operator()({x1, y0, z1});
-    double c110 = srcImage.operator()({x1, y1, z0});
-    double c111 = srcImage.operator()({x1, y1, z1});
+    double c000 = srcImage({x0, y0, z0});
+    double c001 = srcImage({x0, y0, z1});
+    double c010 = srcImage({x0, y1, z0});
+    double c011 = srcImage({x0, y1, z1});
+    double c100 = srcImage({x1, y0, z0});
+    double c101 = srcImage({x1, y0, z1});
+    double c110 = srcImage({x1, y1, z0});
+    double c111 = srcImage({x1, y1, z1});
 
     double c00 = c000 * (1 - xD) + c100 * xD;
     double c01 = c001 * (1 - xD) + c101 * xD;
@@ -351,7 +351,7 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
                 }
 
                 if (interp.compare("nn") == 0)
-                    value = image.operator()({(int) backX, (int) backY, (int) backZ});
+                    value = image({(int) backX, (int) backY, (int) backZ});
 
                 imRot.setValue({x, y, z}, value);
 
@@ -588,7 +588,7 @@ int main(int argc, char **argv) {
         initGrad(gradient);
 
         Viewer3D<> viewer1;
-        viewer1 << SetMode3D((*(domain.begin())).className(), "PavingWired");
+        viewer1 << SetMode3D((*(domain.begin())).className(), "Paving");
         for (Z3i::Domain::ConstIterator it = domain.begin(), itend = domain.end();
              it != itend;
              ++it) {
@@ -598,10 +598,10 @@ int main(int argc, char **argv) {
                 Color c = gradient(valDist);
                 viewer1 << CustomColors3D(Color((float) (c.red()),
                                                 (float) (c.green()),
-                                                (float) (c.blue(), 255)),
+                                                (float) (c.blue(), 50)),
                                           Color((float) (c.red()),
                                                 (float) (c.green()),
-                                                (float) (c.blue()), 255));
+                                                (float) (c.blue()), 50));
                 viewer1 << *it;
             }
         }
@@ -763,7 +763,9 @@ int main(int argc, char **argv) {
         rotB0Tril = invB2;
         rotB1Tril = invB1;
         rotB2Tril = invB0 - 1;
-
+	
+	std::vector<ObjectType> test = createObjectVector(objTRotInv);
+	cout << test.size() << endl;
         objComponents.push_back(connectedComponents);
         objInvComponents.push_back(createObjectVector(objTRotInv));
     }
@@ -771,8 +773,8 @@ int main(int argc, char **argv) {
     GradientColorMap<double> gradient(0, 255);
     initGrad(gradient);
 
-    viewer1 << SetMode3D((*(domain.begin())).className(), "PavingWired");
-    viewer2 << SetMode3D((*(domain.begin())).className(), "PavingWired");
+    viewer1 << SetMode3D((*(domain.begin())).className(), "Paving");
+    viewer2 << SetMode3D((*(domain.begin())).className(), "Paving");
 
      if (strcmp(argv[5], "rot") == 0) {
         if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
@@ -799,10 +801,10 @@ int main(int argc, char **argv) {
 
                     viewer1 << CustomColors3D(Color((float) (c.red()),
                                                     (float) (c.green()),
-                                                    (float) (c.blue(), 230)),
+                                                    (float) (c.blue(), 50)),
                                               Color((float) (c.red()),
                                                     (float) (c.green()),
-                                                    (float) (c.blue()), 230));
+                                                    (float) (c.blue()), 50));
                     viewer1 << *it;
                 }
             }
@@ -825,7 +827,7 @@ int main(int argc, char **argv) {
                     viewer2 << *it;
                 }
             }
-
+	
             for (int i = 0; i < objComponents[trilIndex].size(); i++) {
                 Color c = objComponents[trilIndex][i].size() > 10 ? Color::Yellow : Color::Red;
                 for (auto it = objComponents[trilIndex][i].begin(), itend = objComponents[trilIndex][i].end();
@@ -833,10 +835,10 @@ int main(int argc, char **argv) {
                      ++it) {
                     viewer2 << CustomColors3D(Color((float) (c.red()),
                                                     (float) (c.green()),
-                                                    (float) (c.blue(), 230)),
+                                                    (float) (c.blue(), 190)),
                                               Color((float) (c.red()),
                                                     (float) (c.green()),
-                                                    (float) (c.blue()), 230));
+                                                    (float) (c.blue()), 190));
                     viewer2 << *it;
                 }
             }

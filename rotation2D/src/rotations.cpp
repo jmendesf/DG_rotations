@@ -11,7 +11,7 @@ void getClampedPixelValue(Image image, int x, int y, float &val) {
     x = clampInt(x, lowerBoundX, upperBoundX - 2);
     y = clampInt(y, lowerBoundY, upperBoundY - 2);
 
-    val = image.operator()({x, y});
+    val = image({x, y});
 }
 
 // Bilinear interpolation function
@@ -24,10 +24,10 @@ float computeBilinearInterpolation(Image image, float x, float y) {
     int y2 = y1 + 1;
 
     // values of the 4 adjacent pixels
-    float Q11 = image.operator()({x1, y1});
-    float Q12 = image.operator()({x1, y2});
-    float Q21 = image.operator()({x2, y1});
-    float Q22 = image.operator()({x2, y2});
+    float Q11 = image({x1, y1});
+    float Q12 = image({x1, y2});
+    float Q21 = image({x2, y1});
+    float Q22 = image({x2, y2});
 
     // interpolation computation
     float res = (1 / ((x2 - x1) * (y2 - y1)))
@@ -106,10 +106,10 @@ unsigned int getBitsFromPixels(Image image, float x, float y) {
     int x1 = x0 + 1;
     int y1 = y0 + 1;
 
-    int i0 = image.operator()({x0,y0});
-    int i1 = image.operator()({x1,y0});
-    int i2 = image.operator()({x1,y1});
-    int i3 = image.operator()({x0,y1});
+    int i0 = image({x0,y0});
+    int i1 = image({x1,y0});
+    int i2 = image({x1,y1});
+    int i3 = image({x0,y1});
 
     if(i0 > 0)
         bits |= 1;
@@ -261,13 +261,14 @@ Image rotateBackward(Image image, float angle, INTERPOLATION_METHOD method) {
             // Set the value in the rotated Image
             // Nearest neighbor
             if (method == NEAREST_NEIGHBOR)
-                rotIm.setValue({x, y}, image.operator()({int(backX), int(backY)}));
+                rotIm.setValue({x, y}, image({int(backX), int(backY)}));
             else if (method == BILINEAR_INTERPOLATION)
                 rotIm.setValue({x, y}, computeBilinearInterpolation(image, backX, backY));
-            else if (method == BICUBIC_INTERPOLATION)
+            else if (method == BICUBIC_INTERPOLATION) 
                 rotIm.setValue({x, y}, computeBicubicInterpolation(image, backX, backY));
             else if (method == MARCHING_SQUARES)
                 rotIm.setValue({x, y}, computeMarchingSquaresValue(image, backX, backY));
+        
         }
     }
     return rotIm;

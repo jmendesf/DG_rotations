@@ -4,7 +4,7 @@
 void inverseImage(Image &image) {
     for (int y = image.domain().lowerBound()[1]; y <= image.domain().upperBound()[1]; y++)
         for (int x = image.domain().lowerBound()[0]; x <= image.domain().upperBound()[0]; x++)
-            image.setValue({x, y}, 255 - int(image.operator()({x, y})));
+            image.setValue({x, y}, 255 - int(image({x, y})));
 }
 
 // Returns an image corresponding to the given DT
@@ -18,7 +18,7 @@ Image createImageFromDT(DTL1 dtl1, int maxValue, bool toGS) {
 
     for (int y = im.domain().lowerBound()[1]; y <= im.domain().upperBound()[1]; ++y)
         for (int x = im.domain().lowerBound()[0]; x <= im.domain().upperBound()[0]; ++x) {
-            value = dtl1.operator()({x, y});
+            value = dtl1({x, y});
             im.setValue({x, y}, toGS ? step * value : value);
         }
     return im;
@@ -34,7 +34,7 @@ Image createImageFromDT(DTL2 dtl2, int maxValue, bool toGS) {
 
     for (int y = im.domain().lowerBound()[1]; y <= im.domain().upperBound()[1]; ++y)
         for (int x = im.domain().lowerBound()[0]; x <= im.domain().upperBound()[0]; ++x) {
-            value = dtl2.operator()({x, y});
+            value = dtl2({x, y});
             im.setValue({x, y}, toGS ? step * value : value);
         }
     return im;
@@ -47,7 +47,7 @@ Image addImages(Image im1, Image im2) {
     float value;
     for (int y = im.domain().lowerBound()[1]; y <= im.domain().upperBound()[1]; ++y)
         for (int x = im.domain().lowerBound()[0]; x <= im.domain().upperBound()[0]; ++x) {
-            value = im1.operator()({x, y}) + im2.operator()({x, y});
+            value = im1({x, y}) + im2({x, y});
             if (value == 0.) {
                 value = -0.5;
             }
@@ -78,8 +78,8 @@ Image addImages(DTL2 dtl2Im1, DTL2 dtl2Im2) {
 
     for (int y = im.domain().lowerBound()[1]; y <= im.domain().upperBound()[1]; ++y) {
         for (int x = im.domain().lowerBound()[0]; x <= im.domain().upperBound()[0]; ++x) {
-            value = dtl2Im1.operator()({x, y});
-            value2 = dtl2Im2.operator()({x, y});
+            value = dtl2Im1({x, y});
+            value2 = dtl2Im2({x, y});
 
             // the point at x,y takes the maximum value between the two
             im.setValue({x, y}, std::max(value * step, value2 * step2));
@@ -97,9 +97,9 @@ void imDTToGS(Image &imDT, int minValue, int maxValue) {
     // compute equivalent for DT in GS
     for (int y = imDT.domain().lowerBound()[1]; y < imDT.domain().upperBound()[1]; ++y) {
         for (int x = imDT.domain().lowerBound()[0]; x < imDT.domain().upperBound()[0]; ++x) {
-            value = imDT.operator()({x, y});
+            value = imDT({x, y});
 
-            if (imDT.operator()({x, y}) < 0)
+            if (imDT({x, y}) < 0)
                 value = 255;
 
             imDT.setValue({x, y}, abs(step * value));
@@ -113,7 +113,7 @@ void thresholdDTImage(Image src, Image &dst) {
     for (int y = dst.domain().lowerBound()[1]; y <= dst.domain().upperBound()[1]; y++) {
         for (int x = dst.domain().lowerBound()[0]; x <= dst.domain().upperBound()[0]; x++) {
             if (src.domain().isInside(PointVector<2, int>(x, y)))
-                dst.setValue({x, y}, src.operator()({x, y}) < 0 ? 255 : 0);
+                dst.setValue({x, y}, src({x, y}) < 0 ? 255 : 0);
         }
     }
 }
@@ -123,11 +123,11 @@ void thresholdDTImage(Image src, Image &dst) {
 void processDT(Image &imDT, bool isInterior) {
     for (int y = imDT.domain().lowerBound()[1]; y <= imDT.domain().upperBound()[1]; y++) {
         for (int x = imDT.domain().lowerBound()[0]; x <= imDT.domain().upperBound()[0]; x++) {
-            if (imDT.operator()({x, y}) == 1.) {
+            if (imDT({x, y}) == 1.) {
                 imDT.setValue({x, y}, isInterior ? -0.5 : 0.5);
             } else {
-                if (isInterior && (imDT.operator()({x, y}) != 0))
-                    imDT.setValue({x, y}, -imDT.operator()({x, y}));
+                if (isInterior && (imDT({x, y}) != 0))
+                    imDT.setValue({x, y}, -imDT({x, y}));
             }
         }
     }
@@ -141,7 +141,7 @@ Z2i::Domain getResizedDomain(Image &image) {
 
     for (int y = image.domain().lowerBound()[1]; y <= image.domain().upperBound()[1]; ++y) {
         for (int x = image.domain().lowerBound()[0]; x <= image.domain().upperBound()[0]; ++x) {
-            if (image.operator()({x, y}) < 0) {
+            if (image({x, y}) < 0) {
                 yMin = y - 1;
                 breakFor = true;
                 break;
@@ -154,7 +154,7 @@ Z2i::Domain getResizedDomain(Image &image) {
 
     for (int x = image.domain().lowerBound()[0]; x < image.domain().upperBound()[0]; ++x) {
         for (int y = image.domain().lowerBound()[1]; y < image.domain().upperBound()[1]; ++y) {
-            if (image.operator()({x, y}) < 0) {
+            if (image({x, y}) < 0) {
                 xMin = x - 1;
                 breakFor = true;
                 break;
@@ -168,7 +168,7 @@ Z2i::Domain getResizedDomain(Image &image) {
 
     for (int x = image.domain().upperBound()[0]; x > image.domain().lowerBound()[0]; --x) {
         for (int y = image.domain().lowerBound()[1]; y < image.domain().upperBound()[1]; ++y) {
-            if (image.operator()({x, y}) < 0) {
+            if (image({x, y}) < 0) {
                 xMax = x + 1;
                 breakFor = true;
                 break;
@@ -181,7 +181,7 @@ Z2i::Domain getResizedDomain(Image &image) {
 
     for (int y = image.domain().upperBound()[1]; y > image.domain().lowerBound()[1]; --y) {
         for (int x = image.domain().lowerBound()[0]; x < image.domain().upperBound()[0]; ++x) {
-            if (image.operator()({x, y}) < 0) {
+            if (image({x, y}) < 0) {
                 yMax = y + 1;
                 breakFor = true;
                 break;
@@ -199,7 +199,7 @@ ImagePGM thresholdToPGM(Image image) {
 
     for (int y = pgm.domain().lowerBound()[1]; y <= pgm.domain().upperBound()[1]; ++y) {
         for (int x = pgm.domain().lowerBound()[0]; x <= pgm.domain().upperBound()[0]; ++x) {
-            pgm.setValue({x, y}, image.operator()({x, y}) >= 0 ? 0 : 255);
+            pgm.setValue({x, y}, image({x, y}) >= 0 ? 0 : 255);
         }
     }
     return pgm;

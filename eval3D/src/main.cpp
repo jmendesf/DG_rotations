@@ -83,7 +83,7 @@ void inverseImage(Image src, Image &dst) {
     for (int z = src.domain().lowerBound()[2]; z <= src.domain().upperBound()[2]; z++)
         for (int y = src.domain().lowerBound()[1]; y <= src.domain().upperBound()[1]; y++)
             for (int x = src.domain().lowerBound()[0]; x <= src.domain().upperBound()[0]; x++)
-                dst.setValue({x, y, z}, 255 - src.operator()({x, y, z}));
+                dst.setValue({x, y, z}, 255 - src({x, y, z}));
 }
 
 void DTToImage(DTL2 dtL2, double maxValue, Image &dst) {
@@ -233,14 +233,14 @@ void computeTrilinearRotation(double x, double y, double z, double &value, Image
     double yD = y - y0;
     double zD = z - z0;
 
-    double c000 = srcImage.operator()({x0, y0, z0});
-    double c001 = srcImage.operator()({x0, y0, z1});
-    double c010 = srcImage.operator()({x0, y1, z0});
-    double c011 = srcImage.operator()({x0, y1, z1});
-    double c100 = srcImage.operator()({x1, y0, z0});
-    double c101 = srcImage.operator()({x1, y0, z1});
-    double c110 = srcImage.operator()({x1, y1, z0});
-    double c111 = srcImage.operator()({x1, y1, z1});
+    double c000 = srcImage({x0, y0, z0});
+    double c001 = srcImage({x0, y0, z1});
+    double c010 = srcImage({x0, y1, z0});
+    double c011 = srcImage({x0, y1, z1});
+    double c100 = srcImage({x1, y0, z0});
+    double c101 = srcImage({x1, y0, z1});
+    double c110 = srcImage({x1, y1, z0});
+    double c111 = srcImage({x1, y1, z1});
 
     double c00 = c000 * (1 - xD) + c100 * xD;
     double c01 = c001 * (1 - xD) + c101 * xD;
@@ -336,7 +336,7 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
                 }
 
                 if (interp.compare("nn") == 0)
-                    value = image.operator()({(int) backX, (int) backY, (int) backZ});
+                    value = image({(int) backX, (int) backY, (int) backZ});
 
                 imRot.setValue({x, y, z}, value);
 
@@ -462,15 +462,16 @@ int main(int argc, char **argv) {
     outputFile.open("../output/eval_logs.txt");
 
     DT6_6 dt6_6(adj6, adj6, JORDAN_DT);
-    DT26_6 dt26_6(adj26, adj6, JORDAN_DT);
+    DT26_6 dt26_6(adj26, adj6, JORDAN_DT);  
 
     cout << endl;
 
     PointVector<3, int> lowerBound = {-20, -20, -20};
-    PointVector<3, int> upperBound = {19, 19, 19};
+    PointVector<3, int> upperBound = {21, 21, 21};
     Z3i::Domain domain(lowerBound, upperBound);
     Image image(domain);
 
+    
     for (int z = domain.lowerBound()[2] + 3; z <= domain.upperBound()[2] - 3; ++z) {
         for (int y = domain.lowerBound()[1] + 3; y <= domain.upperBound()[1] - 3; ++y) {
             for (int x = domain.lowerBound()[0] + 3; x <= domain.upperBound()[0] - 3; ++x) {
@@ -480,7 +481,20 @@ int main(int argc, char **argv) {
                     image.setValue({x, y, z}, 0);
             }
         }
-    }    
+    } 
+
+    /*
+    double r = 40;
+    for (int z = domain.lowerBound()[2]; z <= domain.upperBound()[2]; ++z) {
+        for (int y = domain.lowerBound()[1]; y <= domain.upperBound()[1]; ++y) {
+            for (int x = domain.lowerBound()[0]; x <= domain.upperBound()[0]; ++x) {
+                if (distanceToPoint(x, y, z, 0, 0, 0) <= r)
+                    image.setValue({x, y, z}, 150);
+                else
+                    image.setValue({x, y, z}, 0);
+            }
+        }
+    }*/
 
     cout << "-- Preprocessing the original image..." << endl;
     Image thresholdedIm(domain);
@@ -557,9 +571,11 @@ int main(int argc, char **argv) {
                     continue;
 
                 for(double angle = 0.1; angle < ((M_PI / 4)+ 0.25); angle += angleStep) {
+                    
                     int rotB0NN = -1, rotB1NN = -1, rotB2NN = -1;
                     int rotB0Tril = -1, rotB1Tril = -1, rotB2Tril = -1;
-
+                    int invB0, invB1, invB2;
+                    /*
                     // Nearest Neighbor rotation
                     imRotNN = rotateBackward(DTAddIm, angle, a, b, c, "nn");
                     threshImRotNN = Image(imRotNN.domain());
@@ -592,7 +608,7 @@ int main(int argc, char **argv) {
 
                     if((rotB0NN != imB0) || (rotB1NN != imB1) || (rotB2NN != imB2))
                         outputFile << "[#" << rotIndex <<  "] - NN - Axis: (" << a << ", " << b << ", " << c << ") - Angle: " << angle << " - b0 = " << rotB0NN << ", b1 = " << rotB1NN << ", b2 = " << rotB2NN << "\n";
-
+                    */
                     // Trilinear interpolation rotation
                     imRotTril = rotateBackward(DTAddIm, angle, a, b, c, "tril");
                     threshImRotTril = Image(imRotTril.domain());
@@ -626,8 +642,8 @@ int main(int argc, char **argv) {
                     if((rotB0Tril != imB0) || (rotB1Tril != imB1) || (rotB2Tril != imB2))
                         outputFile << "[#" << rotIndex <<  "] - Tril - Axis: (" << a << ", " << b << ", " << c << ") - Angle: " << angle << " - b0 = " << rotB0Tril << ", b1 = " << rotB1Tril << ", b2 = " << rotB2Tril << "\n";
 
-                    connectedComponents.clear();
-                    rotObjectsInv26_6.clear();
+                    //connectedComponents.clear();
+                    //rotObjectsInv26_6.clear();
                     rotIndex++;
                 }
             }      
