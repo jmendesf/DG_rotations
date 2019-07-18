@@ -91,9 +91,6 @@ void inverseImage(Image src, Image &dst) {
 }
 
 void DTToImage(DTL2 dtL2, double maxValue, Image &dst) {
-    int step = 1;
-    float value = 0;
-
     for (Z3i::Domain::ConstIterator it = dtL2.domain().begin(), itend = dtL2.domain().end();
          it != itend;
          ++it) {
@@ -457,10 +454,64 @@ void objectTypeToCubicalComplex(ObjectType obj, CC &cc, KSpace k) {
     cc.close();
 }
 
+PointVector<3, double> computeVector(PointVector<3, double> a, PointVector<3, double> b) {
+    return PointVector<3, double>(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+}
+
+PointVector<3, double> planeCoefficients(PointVector<3, double> p1, PointVector<3, double> p2) {
+    double r1 = p1[1] * p2[2] - p1[2] * p2[1];
+    double r2 = p1[2] * p2[0] - p1[0] * p2[2];
+    double r3 = p1[0] * p2[1] - p1[1] * p2[0];
+
+    return PointVector<3, double>(r1,r2,r3);
+}
+
+double getDOnPlaneEquation(PointVector<3, double> p, double a, double b, double c) {
+    return -(p[0] * a + p[1] * b + p[2] * c);
+}
+
+PointVector<4, double> getPlaneEquation(PointVector<3, double> a, PointVector<3, double> b, PointVector<3, double> c) {
+    PointVector<3, double> ab = computeVector(a, b);
+    PointVector<3, double> ac = computeVector(a, c);
+
+    PointVector<3, double> coeffs = planeCoefficients(ab, ac);
+    double d = getDOnPlaneEquation(a, coeffs[0], coeffs[1], coeffs[2]);
+
+    return PointVector<4, double>(coeffs[0], coeffs[1], coeffs[2], d);
+}
+
+bool isForeground(unsigned char cube, PointVector<3, double> p) {
+    switch (cube) {
+        case 0:
+            return false;
+        case 0^255:
+            return true;
+        case 16:
+            if(p[0] * 0.25 + p[1] * 0.25 + p[2] * 0.25 - 0.125 > 0)
+                return false;
+            return true;
+        case 16^255:
+            if(p[0] * 0.25 + p[1] * 0.25 + p[2] * 0.25 - 0.125 > 0)
+                return true;
+            return false;
+        default:
+            cout << "not computed yet." << endl;
+            return false;
+    }
+}
+
 int main(int argc, char **argv) {
     float vecRotation[3];
     float angle;
     string interp, shape;
+
+    PointVector<3, double> a(0, 0, 0.5);
+    PointVector<3, double> b(0.5, 0, 0);
+    PointVector<3, double> c(0, 0.5, 0);
+
+    cout << getPlaneEquation(a, b, c) << endl;
+    cout << isForeground(239, PointVector<3, double>(0,0,0.500)) << endl;
+    return 0;
 
     if (argc == 7 || argc == 8 || argc == 9 || argc == 11) {
         angle = stod(argv[1]);
@@ -569,7 +620,7 @@ int main(int argc, char **argv) {
             for (int z = domain.lowerBound()[2] + 3; z <= domain.upperBound()[2] - 3; ++z) {
                 for (int y = domain.lowerBound()[1] + 3; y <= domain.upperBound()[1] - 3; ++y) {
                     for (int x = domain.lowerBound()[0] + 3; x <= domain.upperBound()[0] - 3; ++x) {
-                        if ((2*x + y + z) < 5  && (2*x + y + z) > -5 )
+                        if ((2 * x + y + z) < 5 && (2 * x + y + z) > -5)
                             image.setValue({x, y, z}, 150);
                         else
                             image.setValue({x, y, z}, 0);
@@ -633,7 +684,7 @@ int main(int argc, char **argv) {
     std::vector<ObjectType> imObjects = createObjectVector(imObject);
     std::vector<ObjectType> imObjectsInv = createObjectVector(imObjectInv);
     std::vector<ObjectType26_6> imObjectsInv26_6 = createObjectVector(imObjectInv26_6);
-    
+
     cout << "-- Building cubical complexes ";
     KSpace K = initKSpace(image.domain().lowerBound(), image.domain().upperBound());
 
@@ -648,7 +699,7 @@ int main(int argc, char **argv) {
     int imB0 = imInvB2;
     int imB1 = imInvB1;
     int imB2 = imInvB0 - 1;
-    
+
     Viewer3D<> viewer1;
     Viewer3D<> viewer2;
     viewer1.setWindowTitle("NN");
@@ -763,9 +814,9 @@ int main(int argc, char **argv) {
         rotB0Tril = invB2;
         rotB1Tril = invB1;
         rotB2Tril = invB0 - 1;
-	
-	std::vector<ObjectType> test = createObjectVector(objTRotInv);
-	cout << test.size() << endl;
+
+        std::vector<ObjectType> test = createObjectVector(objTRotInv);
+        cout << test.size() << endl;
         objComponents.push_back(connectedComponents);
         objInvComponents.push_back(createObjectVector(objTRotInv));
     }
@@ -776,7 +827,7 @@ int main(int argc, char **argv) {
     viewer1 << SetMode3D((*(domain.begin())).className(), "Paving");
     viewer2 << SetMode3D((*(domain.begin())).className(), "Paving");
 
-     if (strcmp(argv[5], "rot") == 0) {
+    if (strcmp(argv[5], "rot") == 0) {
         if (interp.compare("all") == 0 || interp.compare("nn") == 0) {
             for (int i = 1; i < objInvComponents[0].size(); i++) {
                 for (auto it = objInvComponents[0][i].begin(), itend = objInvComponents[0][i].end();
@@ -827,7 +878,7 @@ int main(int argc, char **argv) {
                     viewer2 << *it;
                 }
             }
-	
+
             for (int i = 0; i < objComponents[trilIndex].size(); i++) {
                 Color c = objComponents[trilIndex][i].size() > 10 ? Color::Yellow : Color::Red;
                 for (auto it = objComponents[trilIndex][i].begin(), itend = objComponents[trilIndex][i].end();
@@ -854,7 +905,6 @@ int main(int argc, char **argv) {
 
     if (interp.compare("all") == 0 || interp.compare("nn") == 0 || strcmp(argv[5], "shape") == 0) {
         viewer1 << Viewer3D<>::updateDisplay;
-        viewer2 << Viewer3D<>::updateDisplay;
         viewer1.show();
     }
 
@@ -883,39 +933,25 @@ int main(int argc, char **argv) {
     cout << "       B1: " << imB1 << endl;
     cout << "       B2: " << imB2 << endl << endl;
 
-    /*
-    int i = 0;
-    for (auto connComp : imObjects) {
-        cout << "               Volume (component #" << i++ << "): " << connComp.size() << endl;
-    }
-    
-    cout << "       - Nb of cavities                        : " << imObjectsInv.size() - 1 << endl;
-    cout << endl;
-    */
-
     if (interp == "all") {
         for (int i = 0; i < 2; i++) {
-            if (i == 0)
-            {
-              cout << "   Nearest neighbor rotation: " << endl;
-              cout << "       B0: " << rotB0NN << endl;
-              cout << "       B1: " << rotB1NN << endl;
-              cout << "       B2: " << rotB2NN << endl << endl;
+            if (i == 0) {
+                cout << "   Nearest neighbor rotation: " << endl;
+                cout << "       B0: " << rotB0NN << endl;
+                cout << "       B1: " << rotB1NN << endl;
+                cout << "       B2: " << rotB2NN << endl << endl;
+            } else {
+                cout << "   Trilinear interpolation rotation: " << endl;
+                cout << "       B0: " << rotB0Tril << endl;
+                cout << "       B1: " << rotB1Tril << endl;
+                cout << "       B2: " << rotB2Tril << endl;
             }
-              
-            else
-            {
-              cout << "   Trilinear interpolation rotation: " << endl;
-              cout << "       B0: " << rotB0Tril << endl;
-              cout << "       B1: " << rotB1Tril << endl;
-              cout << "       B2: " << rotB2Tril << endl;
-            }
-                
+
         }
     } else {
         cout << "   Rotated image: " << endl;
         cout << "       - Nb connected components               : " << objComponents[0].size() << endl;
-        cout << "             B0: " << (interp == "nn" ? rotB0NN : rotB0Tril) << endl;  
+        cout << "             B0: " << (interp == "nn" ? rotB0NN : rotB0Tril) << endl;
         cout << "             B1: " << (interp == "nn" ? rotB1NN : rotB1Tril) << endl;
         cout << "             B2: " << (interp == "nn" ? rotB2NN : rotB2Tril) << endl;
     }
