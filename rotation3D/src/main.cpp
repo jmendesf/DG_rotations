@@ -505,20 +505,22 @@ int main(int argc, char **argv) {
     float angle;
     string interp, shape;
 
+    // Plane equation tests (MC)
+    /*
     PointVector<3, double> a(0, 0, 0.5);
     PointVector<3, double> b(0.5, 0, 0);
     PointVector<3, double> c(0, 0.5, 0);
 
     cout << getPlaneEquation(a, b, c) << endl;
     cout << isForeground(239, PointVector<3, double>(0,0,0.500)) << endl;
-    return 0;
+    */
 
     if (argc == 7 || argc == 8 || argc == 9 || argc == 11) {
         angle = stod(argv[1]);
         interp = argv[6];
-        vecRotation[0] = stod(argv[2]);
-        vecRotation[1] = stod(argv[3]);
-        vecRotation[2] = stod(argv[4]);
+        vecRotation[0] = std::stod(argv[2]);
+        vecRotation[1] = std::stod(argv[3]);
+        vecRotation[2] = std::stod(argv[4]);
     } else {
         usage();
         return 0;
