@@ -448,12 +448,6 @@ std::vector<ObjectType26_6> createObjectVector(ObjectType26_6 objT) {
     return objects;
 }
 
-void objectTypeToCubicalComplex(ObjectType obj, CC &cc, KSpace k) {
-    for (auto it = obj.begin(), itend = obj.end(); it != itend; ++it)
-        cc.insertCell(k.uSpel(*it));
-    cc.close();
-}
-
 PointVector<3, double> computeVector(PointVector<3, double> a, PointVector<3, double> b) {
     return PointVector<3, double>(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
 }
@@ -473,11 +467,15 @@ double getDOnPlaneEquation(PointVector<3, double> p, double a, double b, double 
 PointVector<4, double> getPlaneEquation(PointVector<3, double> a, PointVector<3, double> b, PointVector<3, double> c) {
     PointVector<3, double> ab = computeVector(a, b);
     PointVector<3, double> ac = computeVector(a, c);
-
     PointVector<3, double> coeffs = planeCoefficients(ab, ac);
     double d = getDOnPlaneEquation(a, coeffs[0], coeffs[1], coeffs[2]);
 
     return PointVector<4, double>(coeffs[0], coeffs[1], coeffs[2], d);
+}
+
+bool isInUpperSpace(double a, double b, double c, double d, PointVector<3, double> p) {
+    cout << ((p[0] * a + p[1] * b + p[2] * c + d )) << endl;
+    return (p[0] * a + p[1] * b + p[2] * c + d > 0);
 }
 
 bool isForeground(unsigned char cube, PointVector<3, double> p) {
@@ -487,13 +485,29 @@ bool isForeground(unsigned char cube, PointVector<3, double> p) {
         case 0^255:
             return true;
         case 16:
-            if(p[0] * 0.25 + p[1] * 0.25 + p[2] * 0.25 - 0.125 > 0)
-                return false;
-            return true;
+            return !isInUpperSpace(0.25, 0.25, 0.25, -0.125, p);
         case 16^255:
-            if(p[0] * 0.25 + p[1] * 0.25 + p[2] * 0.25 - 0.125 > 0)
-                return true;
-            return false;
+            return isInUpperSpace(0.25, 0.25, 0.25, -0.125, p);
+        case 48:
+            return !isInUpperSpace(0, 0.5, 0.5, -0.25, p);
+        case 80:
+            return (!isInUpperSpace(0.25, 0.25, 0.25, -0.125, p) || !isInUpperSpace(-0.25, 0.25, -0.25, 0.375, p));
+        case 35:
+            return (!isInUpperSpace(-0.25, -0.25, 0.25, 0.125, p) && !isInUpperSpace(0, 0, 1, -0.5, p));
+        case 51:
+            return (p[2] <= 50);
+        case 163:
+            return (!isInUpperSpace(.25, .25, -.25, .125, p) || (!isInUpperSpace(-0.25, -0.25, 0.25, 0.125, p) && !isInUpperSpace(0, 0, 1, -0.5, p)));
+        case 90:
+            return (!isInUpperSpace(0.25, 0.25, 0.25, -0.125, p) || !isInUpperSpace(-0.25, -0.25, 0.25, 0.375, p) || !isInUpperSpace(-0.25, 0.25, -0.25, 0.375, p) || !isInUpperSpace(0.25, -0.25, -0.25, 0.375, p));
+        case 20:
+            return (!isInUpperSpace(0.25, 0.25, 0.25, -0.125, p) || !isInUpperSpace(-0.25, -0.25, -0.25, 0.625, p));
+        case 52:
+            return (!isInUpperSpace(0, 0.5, 0.5, -0.25, p) || !isInUpperSpace(-0.25, -0.25, -0.25, 0.625, p));
+        case 164:
+            return (!isInUpperSpace(-0.25, 0.25, 0.25, 0.125, p) || !isInUpperSpace(-0.25, -0.25, -0.25, 0.625, p) || !isInUpperSpace(.25, .25, -.25, .125, p));
+        case 150:
+            return (!isInUpperSpace(0.5, 0.5, 0, -0.25, p) || !isInUpperSpace(-0.5, -0.5, 0, 0.75, p));
         default:
             cout << "not computed yet." << endl;
             return false;
@@ -506,14 +520,15 @@ int main(int argc, char **argv) {
     string interp, shape;
 
     // Plane equation tests (MC)
-    /*
-    PointVector<3, double> a(0, 0, 0.5);
-    PointVector<3, double> b(0.5, 0, 0);
-    PointVector<3, double> c(0, 0.5, 0);
 
-    cout << getPlaneEquation(a, b, c) << endl;
-    cout << isForeground(239, PointVector<3, double>(0,0,0.500)) << endl;
-    */
+    PointVector<3, double> a(1, 0.5, 0);
+    PointVector<3, double> b(1, 0.5, 1);
+    PointVector<3, double> c(0.5, 1, 1);
+
+    cout << getPlaneEquation(a, c, b) << endl;
+    cout << isForeground(150, PointVector<3, double>(1,1,0.7)) << endl;
+
+    return 0;
 
     if (argc == 7 || argc == 8 || argc == 9 || argc == 11) {
         angle = stod(argv[1]);
