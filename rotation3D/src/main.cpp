@@ -490,24 +490,72 @@ bool isForeground(unsigned char cube, PointVector<3, double> p) {
             return isInUpperSpace(0.25, 0.25, 0.25, -0.125, p);
         case 48:
             return !isInUpperSpace(0, 0.5, 0.5, -0.25, p);
+        case 48^255:
+            return isInUpperSpace(0, 0.5, 0.5, -0.25, p);
         case 80:
             return (!isInUpperSpace(0.25, 0.25, 0.25, -0.125, p) || !isInUpperSpace(-0.25, 0.25, -0.25, 0.375, p));
+        case 80^255:
+            return (isInUpperSpace(0.25, 0.25, 0.25, -0.125, p) && !isInUpperSpace(-0.25, 0.25, -0.25, 0.375, p));
         case 35:
             return (!isInUpperSpace(-0.25, -0.25, 0.25, 0.125, p) && !isInUpperSpace(0, 0, 1, -0.5, p));
+        case 35^255:
+            return (isInUpperSpace(-0.25, -0.25, 0.25, 0.125, p) || isInUpperSpace(0, 0, 1, -0.5, p));
         case 51:
-            return (p[2] <= 50);
+            return (p[2] <= .5);
+        case 51^255:
+            return (p[2] >= .5);
         case 163:
             return (!isInUpperSpace(.25, .25, -.25, .125, p) || (!isInUpperSpace(-0.25, -0.25, 0.25, 0.125, p) && !isInUpperSpace(0, 0, 1, -0.5, p)));
+        case 163^255:
+            return (isInUpperSpace(.25, .25, -.25, .125, p) && (isInUpperSpace(-0.25, -0.25, 0.25, 0.125, p) || isInUpperSpace(0, 0, 1, -0.5, p)));
         case 90:
             return (!isInUpperSpace(0.25, 0.25, 0.25, -0.125, p) || !isInUpperSpace(-0.25, -0.25, 0.25, 0.375, p) || !isInUpperSpace(-0.25, 0.25, -0.25, 0.375, p) || !isInUpperSpace(0.25, -0.25, -0.25, 0.375, p));
+        case 90^255:
+            return (isInUpperSpace(0.25, 0.25, 0.25, -0.125, p) && isInUpperSpace(-0.25, -0.25, 0.25, 0.375, p) && isInUpperSpace(-0.25, 0.25, -0.25, 0.375, p) && isInUpperSpace(0.25, -0.25, -0.25, 0.375, p));
         case 20:
             return (!isInUpperSpace(0.25, 0.25, 0.25, -0.125, p) || !isInUpperSpace(-0.25, -0.25, -0.25, 0.625, p));
+        case 20^255:
+            return (isInUpperSpace(0.25, 0.25, 0.25, -0.125, p) && isInUpperSpace(-0.25, -0.25, -0.25, 0.625, p));
         case 52:
             return (!isInUpperSpace(0, 0.5, 0.5, -0.25, p) || !isInUpperSpace(-0.25, -0.25, -0.25, 0.625, p));
+        case 52^255:
+            return (isInUpperSpace(0, 0.5, 0.5, -0.25, p) && isInUpperSpace(-0.25, -0.25, -0.25, 0.625, p));
         case 164:
             return (!isInUpperSpace(-0.25, 0.25, 0.25, 0.125, p) || !isInUpperSpace(-0.25, -0.25, -0.25, 0.625, p) || !isInUpperSpace(.25, .25, -.25, .125, p));
+        case 164^255:
+            return (isInUpperSpace(-0.25, 0.25, 0.25, 0.125, p) && isInUpperSpace(-0.25, -0.25, -0.25, 0.625, p) && isInUpperSpace(.25, .25, -.25, .125, p));
         case 150:
             return (!isInUpperSpace(0.5, 0.5, 0, -0.25, p) || !isInUpperSpace(-0.5, -0.5, 0, 0.75, p));
+        case 150^255:
+            return (isInUpperSpace(0.5, 0.5, 0, -0.25, p) && isInUpperSpace(-0.5, -0.5, 0, 0.75, p));
+        case 27:
+            return (!isInUpperSpace(0.25, -0.25, 0.25, -0.125, p));
+        case 27^255:
+            return (isInUpperSpace(0.25, -0.25, 0.25, -0.125, p));
+        case 43:
+            return (!isInUpperSpace(-.5, -.5, 0, .25, p) && !isInUpperSpace(-.25, -.75, .25, .125, p) && !isInUpperSpace(.25, -.25, .75, -.625, p) && !isInUpperSpace(.5, 0, .5, -.75, p));
+        case 43^255:
+            return (isInUpperSpace(-.5, -.5, 0, .25, p) || isInUpperSpace(-.25, -.75, .25, .125, p) || isInUpperSpace(.25, -.25, .75, -.625, p) || isInUpperSpace(.5, 0, .5, -.75, p));
+        case 23:
+            if(p[1] < (-2 * p[0] + 1))
+                return (!isInUpperSpace(.5, 0, .5, -.25, p));
+            if(p[1] < p[0] - .5)
+                return false;
+            if(p[1] < (-.5 * p[0] + 1))
+                return (!isInUpperSpace(.25, -.25, .75, -.125, p));
+            if(p[1] < (-p[0] + 1.5))
+                return (!isInUpperSpace(-.25, -.75, .25, .625, p));
+            return true;
+        case 23^255:
+            if(p[1] < (-2 * p[0] + 1))
+                return (isInUpperSpace(.5, 0, .5, -.25, p));
+            if(p[1] < p[0] - .5)
+                return true;
+            if(p[1] < (-.5 * p[0] + 1))
+                return (isInUpperSpace(.25, -.25, .75, -.125, p));
+            if(p[1] < (-p[0] + 1.5))
+                return (isInUpperSpace(-.25, -.75, .25, .625, p));
+            return false;
         default:
             cout << "not computed yet." << endl;
             return false;
@@ -519,16 +567,19 @@ int main(int argc, char **argv) {
     float angle;
     string interp, shape;
 
-    // Plane equation tests (MC)
+    double x = stod(argv[1]);
+    double y = stod(argv[2]);
+    double z = stod(argv[3]);
 
-    PointVector<3, double> a(1, 0.5, 0);
-    PointVector<3, double> b(1, 0.5, 1);
+    // Plane equation tests (MC)
+    PointVector<3, double> a(0, 1, 0.5);
+    PointVector<3, double> b(1, 0.5, 0);
     PointVector<3, double> c(0.5, 1, 1);
 
     cout << getPlaneEquation(a, c, b) << endl;
-    cout << isForeground(150, PointVector<3, double>(1,1,0.7)) << endl;
+    cout << isForeground(23, PointVector<3, double>(x,y,z)) << endl;
 
-    return 0;
+    //return 0;
 
     if (argc == 7 || argc == 8 || argc == 9 || argc == 11) {
         angle = stod(argv[1]);
