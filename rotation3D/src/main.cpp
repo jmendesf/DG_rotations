@@ -1344,10 +1344,10 @@ int main(int argc, char **argv) {
                     Color c = Color::Blue;
                     viewer1 << CustomColors3D(Color((float) (c.red()),
                                                     (float) (c.green()),
-                                                    (float) (c.blue(), 230)),
+                                                    (float) (c.blue(), 255)),
                                               Color((float) (c.red()),
                                                     (float) (c.green()),
-                                                    (float) (c.blue()), 230));
+                                                    (float) (c.blue()), 255));
                     viewer1 << *it;
                 }
             }
@@ -1360,10 +1360,10 @@ int main(int argc, char **argv) {
 
                     viewer1 << CustomColors3D(Color((float) (c.red()),
                                                     (float) (c.green()),
-                                                    (float) (c.blue(), 50)),
+                                                    (float) (c.blue(), 200)),
                                               Color((float) (c.red()),
                                                     (float) (c.green()),
-                                                    (float) (c.blue()), 50));
+                                                    (float) (c.blue()), 200));
                     viewer1 << *it;
                 }
             }
@@ -1446,12 +1446,12 @@ int main(int argc, char **argv) {
 
     if (interp.compare("all") == 0 || interp.compare("nn") == 0 || strcmp(argv[5], "shape") == 0) {
         viewer1 << Viewer3D<>::updateDisplay;
-        //viewer1.show();
+        viewer1.show();
     }
 
     if (interp.compare("tril") == 0 && strcmp(argv[5], "shape") != 0) {
         viewer2 << Viewer3D<>::updateDisplay;
-        //viewer2.show();
+        viewer2.show();
     }
 
     if (interp.compare("mc") == 0 && strcmp(argv[5], "shape") != 0) {
@@ -1480,7 +1480,7 @@ int main(int argc, char **argv) {
     cout << "       B2: " << imB2 << endl << endl;
 
     if (interp == "all") {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 3; i++) {
             if (i == 0) {
                 cout << "   Nearest neighbor rotation: " << endl;
                 cout << "       B0: " << rotB0NN << endl;
@@ -1490,7 +1490,7 @@ int main(int argc, char **argv) {
                 cout << "   Trilinear interpolation rotation: " << endl;
                 cout << "       B0: " << rotB0Tril << endl;
                 cout << "       B1: " << rotB1Tril << endl;
-                cout << "       B2: " << rotB2Tril << endl;
+                cout << "       B2: " << rotB2Tril << endl << endl;
             } else {
                 cout << "   Marching Cubes method rotation: " << endl;
                 cout << "       B0: " << rotB0MC << endl;
