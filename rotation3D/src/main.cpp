@@ -1174,8 +1174,10 @@ int main(int argc, char **argv) {
 
     Viewer3D<> viewer1;
     Viewer3D<> viewer2;
+    Viewer3D<> viewer3;
     viewer1.setWindowTitle("NN");
     viewer2.setWindowTitle("Trilinear");
+    viewer3.setWindowTitle("Marching Cubes");
 
     cout << "-- Computing distance transforms " << endl;
     cout << "     - Foreground ";
@@ -1401,6 +1403,39 @@ int main(int argc, char **argv) {
             }
         }
 
+        if (interp.compare("all") == 0 || interp.compare("mc") == 0) {
+            int mcIndex = (interp == "mc") ? 0 : 2;
+            for (int i = 1; i < objInvComponents[mcIndex].size(); i++) {
+                for (auto it = objInvComponents[mcIndex][i].begin(), itend = objInvComponents[mcIndex][i].end();
+                     it != itend;
+                     ++it) {
+                    Color c = Color::Blue;
+                    viewer3 << CustomColors3D(Color((float) (c.red()),
+                                                    (float) (c.green()),
+                                                    (float) (c.blue(), 230)),
+                                              Color((float) (c.red()),
+                                                    (float) (c.green()),
+                                                    (float) (c.blue()), 230));
+                    viewer3 << *it;
+                }
+            }
+
+            for (int i = 0; i < objComponents[mcIndex].size(); i++) {
+                Color c = objComponents[mcIndex][i].size() > 10 ? Color::Yellow : Color::Red;
+                for (auto it = objComponents[mcIndex][i].begin(), itend = objComponents[mcIndex][i].end();
+                     it != itend;
+                     ++it) {
+                    viewer3 << CustomColors3D(Color((float) (c.red()),
+                                                    (float) (c.green()),
+                                                    (float) (c.blue(), 190)),
+                                              Color((float) (c.red()),
+                                                    (float) (c.green()),
+                                                    (float) (c.blue()), 190));
+                    viewer3 << *it;
+                }
+            }
+        }
+
     } else {
         trace.error();
         cout << "Unknown argument " << argv[5] << ". Exiting." << endl;
@@ -1417,6 +1452,11 @@ int main(int argc, char **argv) {
     if (interp.compare("tril") == 0 && strcmp(argv[5], "shape") != 0) {
         viewer2 << Viewer3D<>::updateDisplay;
         //viewer2.show();
+    }
+
+    if (interp.compare("mc") == 0 && strcmp(argv[5], "shape") != 0) {
+        viewer3 << Viewer3D<>::updateDisplay;
+        viewer3.show();
     }
 
     Image gsDT = DTToGrayscale(DTAddIm, -max, maxInv);
@@ -1446,11 +1486,16 @@ int main(int argc, char **argv) {
                 cout << "       B0: " << rotB0NN << endl;
                 cout << "       B1: " << rotB1NN << endl;
                 cout << "       B2: " << rotB2NN << endl << endl;
-            } else {
+            } else if (i == 1){
                 cout << "   Trilinear interpolation rotation: " << endl;
                 cout << "       B0: " << rotB0Tril << endl;
                 cout << "       B1: " << rotB1Tril << endl;
                 cout << "       B2: " << rotB2Tril << endl;
+            } else {
+                cout << "   Marching Cubes method rotation: " << endl;
+                cout << "       B0: " << rotB0MC << endl;
+                cout << "       B1: " << rotB1MC << endl;
+                cout << "       B2: " << rotB2MC << endl;
             }
 
         }
