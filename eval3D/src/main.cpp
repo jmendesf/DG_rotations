@@ -1,5 +1,5 @@
 #include <iostream>
-#include <fstream> 
+#include <fstream>
 #include "DGtal/base/Common.h"
 #include "DGtal/kernel/SpaceND.h"
 #include "DGtal/kernel/domains/HyperRectDomain.h"
@@ -67,7 +67,7 @@ void usage() {
     cout << "usage: ./eval3D nbAngle nbAxis" << endl;
 }
 
-void findExtrema(DTL2 dtL2, float &min, float &max) {
+void findExtrema(const DTL2 &dtL2, float &min, float &max) {
     for (DTL2::ConstRange::ConstIterator it = dtL2.constRange().begin(),
                  itend = dtL2.constRange().end();
          it != itend;
@@ -79,7 +79,7 @@ void findExtrema(DTL2 dtL2, float &min, float &max) {
     }
 }
 
-void inverseImage(Image src, Image &dst) {
+void inverseImage(const Image &src, Image &dst) {
     for (int z = src.domain().lowerBound()[2]; z <= src.domain().upperBound()[2]; z++)
         for (int y = src.domain().lowerBound()[1]; y <= src.domain().upperBound()[1]; y++)
             for (int x = src.domain().lowerBound()[0]; x <= src.domain().upperBound()[0]; x++)
@@ -126,12 +126,13 @@ void addDTImages(const Image &im1, const Image &im2, Image &dst) {
         value = im1(*it) + im2(*it);
         if (value == 0.)
             value = -0.5;
+
         dst.setValue(*it, value);
     }
 }
 
 // for debuggingy
-void printMatrix(double matrix[3][3]) {
+void printMatrix(double (&matrix)[3][3]) {
     for (int i = 0; i < 3; i++) {
         for (int y = 0; y < 3; y++)
             cout << matrix[i][y] << " ";
@@ -253,7 +254,7 @@ void computeTrilinearRotation(double x, double y, double z, double &value, const
     value = c0 * (1 - zD) + c1 * zD;
 }
 
-Image rotateBackward(Image image, double angle, double v1, double v2, double v3, const string &interp) {
+Image rotateBackward(const Image &image, double angle, double v1, double v2, double v3, const string &interp) {
     int maxX = image.domain().upperBound()[0];
     int maxY = image.domain().upperBound()[1];
     int maxZ = image.domain().upperBound()[2];
@@ -316,7 +317,7 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
                 PointVector<3, double> backP = computeRotation({x, y, z}, matrixBackward);
 
 
-                if (interp.compare("nn") == 0) {
+                if ((interp == "nn") == 0) {
                     backX = (int) round(backP[0]);
                     backY = (int) round(backP[1]);
                     backZ = (int) round(backP[2]);
@@ -331,11 +332,11 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
                     continue;
                 }
 
-                if (interp.compare("tril") == 0) {
+                if ((interp == "tril") == 0) {
                     computeTrilinearRotation(backP[0], backP[1], backP[2], value, image);
                 }
 
-                if (interp.compare("nn") == 0)
+                if ((interp == "nn") == 0)
                     value = image({(int) backX, (int) backY, (int) backZ});
 
                 imRot.setValue({x, y, z}, value);
@@ -434,9 +435,10 @@ std::vector<ObjectType26_6> createObjectVector(const ObjectType26_6 &objT) {
     return objects;
 }
 
-void objectTypeToCubicalComplex(ObjectType obj, CC &cc, const KSpace &k) {
+void objectTypeToCubicalComplex(const ObjectType &obj, CC &cc, const KSpace &k) {
     for (auto it = obj.begin(), itend = obj.end(); it != itend; ++it)
         cc.insertCell(k.uSpel(*it));
+
     cc.close();
 }
 
@@ -540,7 +542,7 @@ bool isForeground(unsigned char cube, PointVector<3, double> p) {
     }
 }
 
-PointVector<3, double> computeRotation(int rotationMatrix[3][3], PointVector<3, double> p) {
+PointVector<3, double> computeRotation(int (&rotationMatrix)[3][3], PointVector<3, double> p) {
     double a = rotationMatrix[0][0] * p[0] + rotationMatrix[0][1] * p[1] + rotationMatrix[0][2] * p[2];
     double b = rotationMatrix[1][0] * p[0] + rotationMatrix[1][1] * p[1] + rotationMatrix[1][2] * p[2];
     double c = rotationMatrix[2][0] * p[0] + rotationMatrix[2][1] * p[1] + rotationMatrix[2][2] * p[2];
@@ -556,7 +558,7 @@ PointVector<3, double> computeRotation(int **rotationMatrix, PointVector<3, doub
     return PointVector<3, double>(a, b, c);
 }
 
-int **transposeMatrix(int matrix[3][3]) {
+int **transposeMatrix(int (&matrix)[3][3]) {
     int **dstMatrix = new int *[3];
     for (int i = 0; i < 3; i++)
         dstMatrix[i] = new int[3];
@@ -591,7 +593,7 @@ unsigned char pointToBinaryValue(PointVector<3, double> p) {
     }
 }
 
-unsigned char computeRotatedCube(unsigned char cube, int rotationMatrix[3][3]) {
+unsigned char computeRotatedCube(unsigned char cube, int (&rotationMatrix)[3][3]) {
     unsigned char resultingCube = 0;
 
     if ((cube & (unsigned char) 128) != 0)
@@ -639,9 +641,9 @@ unsigned char computeRotatedCube(unsigned char cube, int **rotationMatrix) {
 
 std::map<unsigned char, int **> computeRotationMatrices() {
     std::map<unsigned char, int **> matrixFromBinary;
-    std::vector<unsigned char> cubes = {16, 16 ^ 255, 48, 48 ^ 255, 80, 80 ^ 255, 35, 35 ^ 255, 51, 51 ^ 255,
-                                        163, 163 ^ 255, 90, 90 ^ 255, 20, 20 ^ 255, 52, 52 ^ 255, 164, 164 ^ 255,
-                                        164, 164 ^ 255, 150, 150 ^ 255, 27, 27 ^ 255, 43, 43 ^ 255, 23, 23 ^ 255};
+    std::array<unsigned char, 30> cubes = {16, 16 ^ 255, 48, 48 ^ 255, 80, 80 ^ 255, 35, 35 ^ 255, 51, 51 ^ 255,
+                                           163, 163 ^ 255, 90, 90 ^ 255, 20, 20 ^ 255, 52, 52 ^ 255, 164, 164 ^ 255,
+                                           164, 164 ^ 255, 150, 150 ^ 255, 27, 27 ^ 255, 43, 43 ^ 255, 23, 23 ^ 255};
     for (auto cube : cubes) {
         int rotationMatrix0[3][3] = {{1, 0, 0},
                                      {0, 1, 0},
@@ -828,7 +830,7 @@ bool pointFromImageIsForeground(unsigned char cube, int **matrix, PointVector<3,
                                                         repositionnedPoint[2] + .5));
 }
 
-bool computeRotationMC(PointVector<3, double> p, Image image, std::map<unsigned char, int **> matrixFromBinary) {
+bool computeRotationMC(PointVector<3, double> p, const Image &image, std::map<unsigned char, int **> matrixFromBinary) {
     int x = floor(p[0]);
     int y = floor(p[1]);
     int z = floor(p[2]);
@@ -855,8 +857,8 @@ bool computeRotationMC(PointVector<3, double> p, Image image, std::map<unsigned 
     return pointFromImageIsForeground(cube, matrixFromBinary[cube], normP);
 }
 
-Image rotateBackward(Image image, double angle, double v1, double v2, double v3, string interp,
-                     std::map<unsigned char, int **> matrixFromBinary) {
+Image rotateBackward(const Image &image, double angle, double v1, double v2, double v3, const string &interp,
+                     const std::map<unsigned char, int **> &matrixFromBinary) {
     int maxX = image.domain().upperBound()[0];
     int maxY = image.domain().upperBound()[1];
     int maxZ = image.domain().upperBound()[2];
@@ -925,7 +927,7 @@ Image rotateBackward(Image image, double angle, double v1, double v2, double v3,
                     imRot.setValue({x, y, z}, 1);
                     continue;
                 }
-                if (interp.compare("mc") == 0)
+                if ((interp =="mc") == 0)
                     value = computeRotationMC(backP, image, matrixFromBinary) ? 255 : 0;
 
                 imRot.setValue({x, y, z}, value);
@@ -955,7 +957,7 @@ int main(int argc, char **argv) {
     std::map<unsigned char, int **> matrixFromBinary = computeRotationMatrices();
 
     DT6_6 dt6_6(adj6, adj6, JORDAN_DT);
-    DT26_6 dt26_6(adj26, adj6, JORDAN_DT);  
+    DT26_6 dt26_6(adj26, adj6, JORDAN_DT);
 
     cout << endl;
 
@@ -964,11 +966,11 @@ int main(int argc, char **argv) {
     Z3i::Domain domain(lowerBound, upperBound);
     Image image(domain);
 
-    
+
     for (int z = domain.lowerBound()[2] + 3; z <= domain.upperBound()[2] - 3; ++z) {
         for (int y = domain.lowerBound()[1] + 3; y <= domain.upperBound()[1] - 3; ++y) {
             for (int x = domain.lowerBound()[0] + 3; x <= domain.upperBound()[0] - 3; ++x) {
-                if ((2*x + y + z) < 5  && (2*x + y + z) > -5 )
+                if ((2 * x + y + z) < 5 && (2 * x + y + z) > -5)
                     image.setValue({x, y, z}, 150);
                 else
                     image.setValue({x, y, z}, 0);
@@ -976,7 +978,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    cout << "-- Preprocessing the original image..." << endl;
+    cout << "-- Preprocessing the original image...\n";
     Image thresholdedIm(domain);
     thresholdImage(image, thresholdedIm);
 
@@ -993,7 +995,7 @@ int main(int argc, char **argv) {
     std::vector<ObjectType> imObjects = createObjectVector(imObject);
     std::vector<ObjectType> imObjectsInv = createObjectVector(imObjectInv);
     std::vector<ObjectType26_6> imObjectsInv26_6 = createObjectVector(imObjectInv26_6);
-    
+
     KSpace K = initKSpace(image.domain().lowerBound(), image.domain().upperBound());
 
     CC ccImInv(K);
@@ -1045,17 +1047,15 @@ int main(int argc, char **argv) {
     double angleStep = (M_PI / 4) / nbAngle;
     cout << "-- Computing rotations..." << endl;
 
+    for (int c = 2; c < nbAxis; c++) {
+        for (int b = 1; b < c; b++) {
+            for (int a = 0; a < b; a++) {
 
-
-    for(int c = 2; c < nbAxis; c++) {
-        for(int b = 1; b < c; b++) {
-            for(int a = 0; a < b; a++) {
-                
-                if(!isCoprime(a, b, c))
+                if (!isCoprime(a, b, c))
                     continue;
 
-                for(double angle = 0.1; angle < ((M_PI / 4)+ 0.25); angle += angleStep) {
-                    
+                for (double angle = 0.1; angle < ((M_PI / 4) + 0.25); angle += angleStep) {
+
                     int rotB0NN = -1, rotB1NN = -1, rotB2NN = -1;
                     int rotB0Tril = -1, rotB1Tril = -1, rotB2Tril = -1;
                     int rotB0MC = -1, rotB1MC = -1, rotB2MC = -1;
@@ -1091,8 +1091,10 @@ int main(int argc, char **argv) {
                     rotB1NN = invB1;
                     rotB2NN = invB0 - 1;
 
-                    if((rotB0NN != imB0) || (rotB1NN != imB1) || (rotB2NN != imB2)){
-                        outputFile << "[#" << rotIndex <<  "] - NN - Axis: (" << a << ", " << b << ", " << c << ") - Angle: " << angle << " - b0 = " << rotB0NN << ", b1 = " << rotB1NN << ", b2 = " << rotB2NN << "\n";
+                    if ((rotB0NN != imB0) || (rotB1NN != imB1) || (rotB2NN != imB2)) {
+                        outputFile << "[#" << rotIndex << "] - NN - Axis: (" << a << ", " << b << ", " << c
+                                   << ") - Angle: " << angle << " - b0 = " << rotB0NN << ", b1 = " << rotB1NN
+                                   << ", b2 = " << rotB2NN << "\n";
                         nbErrNN++;
                     }
 
@@ -1125,9 +1127,11 @@ int main(int argc, char **argv) {
                     rotB0Tril = invB2;
                     rotB1Tril = invB1;
                     rotB2Tril = invB0 - 1;
-                
-                    if((rotB0Tril != imB0) || (rotB1Tril != imB1) || (rotB2Tril != imB2)){
-                        outputFile << "[#" << rotIndex <<  "] - Tril - Axis: (" << a << ", " << b << ", " << c << ") - Angle: " << angle << " - b0 = " << rotB0Tril << ", b1 = " << rotB1Tril << ", b2 = " << rotB2Tril << "\n";
+
+                    if ((rotB0Tril != imB0) || (rotB1Tril != imB1) || (rotB2Tril != imB2)) {
+                        outputFile << "[#" << rotIndex << "] - Tril - Axis: (" << a << ", " << b << ", " << c
+                                   << ") - Angle: " << angle << " - b0 = " << rotB0Tril << ", b1 = " << rotB1Tril
+                                   << ", b2 = " << rotB2Tril << "\n";
                         nbErrTril++;
                     }
 
@@ -1158,24 +1162,26 @@ int main(int argc, char **argv) {
                     rotB1MC = invB1;
                     rotB2MC = invB0 - 1;
 
-                    if((rotB0MC != imB0) || (rotB1MC != imB1)  || (rotB2MC != imB2)) {
-                        outputFile << "[#" << rotIndex <<  "] - MC - Axis: (" << a << ", " << b << ", " << c << ") - Angle: " << angle << " - b0 = " << rotB0MC << ", b1 = " << rotB1MC << ", b2 = " << rotB2MC << "\n";
+                    if ((rotB0MC != imB0) || (rotB1MC != imB1) || (rotB2MC != imB2)) {
+                        outputFile << "[#" << rotIndex << "] - MC - Axis: (" << a << ", " << b << ", " << c
+                                   << ") - Angle: " << angle << " - b0 = " << rotB0MC << ", b1 = " << rotB1MC
+                                   << ", b2 = " << rotB2MC << "\n";
                         nbErrMC++;
                     }
 
-                    cout << "rotation #" << rotIndex << "..." << endl;
+                    cout << "rotation #" << rotIndex << "...\n";
                     rotIndex++;
                 }
-            }      
+            }
         }
     }
     outputFile.close();
 
-    cout << endl;
-    cout << "-- Evaluation ended." << endl;
-    cout << "Over " << rotIndex << " rotations :" << endl;
-    cout << "Nb of NN err: " << nbErrNN << ";" << endl;
-    cout << "Nb of Tril err: " << nbErrTril << ";" << endl;
+    cout << "\n";
+    cout << "-- Evaluation ended." << "\n";
+    cout << "Over " << rotIndex << " rotations :" << "\n";
+    cout << "Nb of NN err: " << nbErrNN << ";" << "\n";
+    cout << "Nb of Tril err: " << nbErrTril << ";" << "\n";
     cout << "Nb of MC err: " << nbErrMC << ";" << endl;
 
     return 0;
